@@ -671,11 +671,6 @@ export default function ProviderDashboard() {
     
     if (!shop) return <ProviderAuth onLogin={handleLogin} />
 
-            )}
-        </div>
-    )
-}
-
     const renderView = () => {
         switch (activeView) {
             case 'dashboard': return <DashboardView shop={shop} shopBookings={shopBookings} />
