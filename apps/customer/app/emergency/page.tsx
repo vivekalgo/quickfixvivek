@@ -15,8 +15,8 @@ export default function EmergencyPage() {
     
     const [selectedService, setSelectedService] = useState<any>(null)
     const [formData, setFormData] = useState({
-        name: user?.displayName || '',
-        phone: user?.phone || '',
+        name: '',
+        phone: '',
         altPhone: '',
         address: '',
         problemTitle: '',
@@ -26,7 +26,21 @@ export default function EmergencyPage() {
         lng: null as number | null
     })
 
+    // Update form data when user is loaded
     useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                name: user.displayName || prev.name,
+                phone: user.phone || prev.phone
+            }))
+        }
+    }, [user])
+
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
         fetchServices()
         detectLocation()
 
@@ -38,6 +52,8 @@ export default function EmergencyPage() {
 
         return () => { supabase.removeChannel(channel) }
     }, [])
+
+    if (!mounted) return null // Prevent SSR/Build crashes
 
     const fetchServices = async () => {
         const { data } = await supabase.from('emergency_services').select('*').eq('is_active', true)
@@ -141,7 +157,7 @@ export default function EmergencyPage() {
                     </div>
                 )}
 
-                {step === 2 && (
+                {step === 2 && selectedService && (
                     <div className="animate-slide-up">
                         <div className="bg-white p-6 rounded-[40px] shadow-2xl border border-gray-100 space-y-6">
                             <div className="flex items-center justify-between">
@@ -208,7 +224,7 @@ export default function EmergencyPage() {
                     </div>
                 )}
 
-                {step === 3 && (
+                {step === 3 && selectedService && (
                     <div className="animate-fade-in py-10">
                         <div className="bg-white p-8 rounded-[40px] shadow-2xl border border-gray-100 flex flex-col items-center text-center">
                             <div className="w-24 h-24 bg-emerald-50 rounded-[32px] flex items-center justify-center text-5xl mb-6 shadow-inner shadow-emerald-100">
