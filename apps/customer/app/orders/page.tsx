@@ -24,23 +24,61 @@ export default function OrdersPage() {
     const [isProcessing, setIsProcessing] = useState(false)
     const { user } = useAuth()
 
-    useEffect(() => {
-        const load = async () => {
-            if (!user) return
-            const { data } = await supabase
-                .from('bookings')
-                .select('*, shops(*), services(*)')
-                .eq('user_id', user.uid)
-                .order('created_at', { ascending: false })
-            if (data) setBookingsRaw(data.map((b:any) => ({
+    const fetchAllBookings = async () => {
+        if (!user) return
+        
+        // 1. Fetch Normal Bookings
+        const { data: normal } = await supabase
+            .from('bookings')
+            .select('*, shops(*), services(*)')
+            .eq('user_id', user.uid)
+            .order('created_at', { ascending: false })
+            
+        // 2. Fetch Emergency Bookings
+        const { data: emergency } = await supabase
+            .from('emergency_bookings')
+            .select('*')
+            .eq('user_id', user.uid)
+            .order('created_at', { ascending: false })
+
+        const combined = [
+            ...(normal || []).map((b: any) => ({
                 ...b,
-                shopName: b.shops?.name,
+                isEmergency: false,
+                shopName: b.shops?.name || 'Shop',
                 shopImage: b.shops?.images?.[0],
-                serviceName: b.services?.name || b.service_name || 'Service', // Fallback, we don't have service_name in bookings table except as a reference or we can select services(name)
-            })))
-            setLoading(false)
+                serviceName: b.services?.name || 'Service',
+            })),
+            ...(emergency || []).map((e: any) => ({
+                ...e,
+                isEmergency: true,
+                shopName: 'Emergency Support',
+                serviceName: e.problem_title || 'Emergency Service',
+                service_price: e.emergency_charge,
+            }))
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+        setBookingsRaw(combined)
+        setLoading(false)
+    }
+
+    useEffect(() => {
+        fetchAllBookings()
+
+        // Real-time Sync for Normal Bookings
+        const normalSub = supabase.channel('my-orders-normal')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `user_id=eq.${user?.uid}` }, () => fetchAllBookings())
+            .subscribe()
+
+        // Real-time Sync for Emergency Bookings
+        const emergencySub = supabase.channel('my-orders-emergency')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_bookings', filter: `user_id=eq.${user?.uid}` }, () => fetchAllBookings())
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(normalSub)
+            supabase.removeChannel(emergencySub)
         }
-        load()
     }, [user])
 
     const handleCancel = async (id: string) => {
@@ -103,8 +141,8 @@ export default function OrdersPage() {
                                     onClick={goToDetails}
                                     className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow cursor-pointer active:scale-[0.99] transition-transform">
                                     <div className="flex items-center gap-3 p-4 border-b border-gray-50">
-                                        <div className="relative w-12 h-12 bg-orange-100 rounded-2xl overflow-hidden shrink-0">
-                                            {booking.shopImage && (
+                                        <div className={`relative w-12 h-12 ${booking.isEmergency ? 'bg-red-100' : 'bg-orange-100'} rounded-2xl overflow-hidden shrink-0 flex items-center justify-center text-xl`}>
+                                            {booking.isEmergency ? '🚨' : booking.shopImage ? (
                                                 <Image
                                                     src={booking.shopImage}
                                                     alt={booking.shopName}
@@ -113,11 +151,14 @@ export default function OrdersPage() {
                                                     unoptimized
                                                     className="object-cover"
                                                 />
-                                            )}
+                                            ) : '🏪'}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-[#1A1A2E] text-sm truncate">{booking.shopName}</p>
-                                            <p className="text-gray-400 text-xs truncate">Service booking</p>
+                                            <div className="flex items-center gap-1.5">
+                                                <p className="font-bold text-[#1A1A2E] text-sm truncate">{booking.shopName}</p>
+                                                {booking.isEmergency && <span className="bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase">Emergency</span>}
+                                            </div>
+                                            <p className="text-gray-400 text-xs truncate">{booking.serviceName}</p>
                                         </div>
                                         <StatusBadge status={booking.status as BookingStatus} />
                                     </div>
