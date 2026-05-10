@@ -4,7 +4,7 @@
     "private": true,
     "scripts": {
         "dev": "next dev --webpack -p 3003",
-        "build": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next build --webpack && next export",
+        "build": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next build --webpack",
         "start": "npx serve@latest -l 3003 out",
         "lint": "eslint ."
     },

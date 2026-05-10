@@ -77,7 +77,7 @@ function ShopDetailContent() {
                 await supabase.from('notifications').insert({
                     user_id: shop.owner_id,
                     title: 'New Order Received! 📦',
-                    message: `New booking for ${bookingService.name} from ${user.name || 'a customer'}.`,
+                    message: `New booking for ${bookingService.name} from ${user.displayName || 'a customer'}.`,
                     type: 'success'
                 })
             }

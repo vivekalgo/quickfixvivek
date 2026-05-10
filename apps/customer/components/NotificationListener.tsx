@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { supabase } from '@/lib/data'
 import { useAuth } from '@/lib/AuthContext'
 import { LocalNotifications } from '@capacitor/local-notifications'
+import { Capacitor } from '@capacitor/core'
 
 export default function NotificationListener() {
     const { user } = useAuth()
