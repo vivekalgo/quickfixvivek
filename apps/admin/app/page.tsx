@@ -501,7 +501,7 @@ function AnalyticsView({ bookings }: any) {
     // Calculate Monthly Revenue dynamically
     const monthlyMap: Record<string, number> = {}
     completed.forEach((b:any) => {
-        const date = new Date(b.created_at || Date.now())
+        const date = new Date(b.created_at || '2024-01-01')
         const monthName = date.toLocaleDateString('en-US', { month: 'short' })
         if (!monthlyMap[monthName]) monthlyMap[monthName] = 0
         monthlyMap[monthName] += Number(b.servicePrice) || 0
@@ -821,6 +821,14 @@ function EmergencyManager() {
     const [newService, setNewService] = useState({ name: '', icon: '🚑', charge: 500, estimated_time: '20 mins', description: '' })
 
     useEffect(() => {
+        const fetchEmergencyData = async () => {
+            const { data: b } = await supabase.from('emergency_bookings').select('*, service:emergency_services(*)').order('created_at', { ascending: false })
+            const { data: s } = await supabase.from('emergency_services').select('*').order('name')
+            if (b) setBookings(b)
+            if (s) setServices(s)
+            setLoading(false)
+        }
+
         fetchEmergencyData()
         const channel = supabase.channel('emergency-db-changes')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_bookings' }, () => fetchEmergencyData())
@@ -987,6 +995,12 @@ function BannerManager() {
     const [form, setForm] = useState({ title: '', subtitle: '', emoji: '🎁', bg_color: 'from-orange-500 to-red-500' })
 
     useEffect(() => {
+        const fetchBanners = async () => {
+            setLoading(true)
+            const { data } = await supabase.from('banners').select('*').order('created_at', { ascending: false })
+            if (data) setBanners(data)
+            setLoading(false)
+        }
         fetchBanners()
     }, [])
 

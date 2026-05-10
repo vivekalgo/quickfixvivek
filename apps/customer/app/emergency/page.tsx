@@ -41,6 +41,22 @@ export default function EmergencyPage() {
 
     useEffect(() => {
         setMounted(true)
+
+        const fetchServices = async () => {
+            const { data } = await supabase.from('emergency_services').select('*').eq('is_active', true)
+            if (data) setServices(data)
+            setLoading(false)
+        }
+
+        const detectLocation = async () => {
+            const pos = await getCurrentPosition()
+            if (pos.ok) {
+                setFormData(prev => ({ ...prev, lat: pos.coords[0], lng: pos.coords[1] }))
+                const addr = await reverseGeocode(pos.coords[0], pos.coords[1])
+                if (addr) setFormData(prev => ({ ...prev, address: addr }))
+            }
+        }
+
         fetchServices()
         detectLocation()
 
@@ -54,21 +70,6 @@ export default function EmergencyPage() {
     }, [])
 
     if (!mounted) return null // Prevent SSR/Build crashes
-
-    const fetchServices = async () => {
-        const { data } = await supabase.from('emergency_services').select('*').eq('is_active', true)
-        if (data) setServices(data)
-        setLoading(false)
-    }
-
-    const detectLocation = async () => {
-        const pos = await getCurrentPosition()
-        if (pos.ok) {
-            setFormData(prev => ({ ...prev, lat: pos.coords[0], lng: pos.coords[1] }))
-            const addr = await reverseGeocode(pos.coords[0], pos.coords[1])
-            if (addr) setFormData(prev => ({ ...prev, address: addr }))
-        }
-    }
 
     const handleBooking = async () => {
         if (!selectedService) return

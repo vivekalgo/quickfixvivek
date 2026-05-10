@@ -11,6 +11,34 @@ export default function NotificationListener() {
     useEffect(() => {
         if (!user) return
 
+        const handleNewNotification = async (notif: any) => {
+            // Web Fallback: Show a simple alert if not on mobile
+            if (!Capacitor.isNativePlatform()) {
+                alert(`📢 ${notif.title}\n\n${notif.message}`)
+                return
+            }
+
+            try {
+                // Trigger a native system notification
+                await LocalNotifications.schedule({
+                    notifications: [
+                        {
+                            title: notif.title,
+                            body: notif.message,
+                            id: Math.floor(Math.random() * 10000),
+                            schedule: { at: new Date(Date.now() + 1000) },
+                            sound: 'default',
+                            attachments: [],
+                            actionTypeId: '',
+                            extra: null
+                        }
+                    ]
+                })
+            } catch (e) {
+                console.error('Failed to show local notification', e)
+            }
+        }
+
         // 1. Request permission for local notifications
         LocalNotifications.requestPermissions()
 
@@ -35,34 +63,6 @@ export default function NotificationListener() {
             supabase.removeChannel(channel)
         }
     }, [user])
-
-    const handleNewNotification = async (notif: any) => {
-        // Web Fallback: Show a simple alert if not on mobile
-        if (!Capacitor.isNativePlatform()) {
-            alert(`📢 ${notif.title}\n\n${notif.message}`)
-            return
-        }
-
-        try {
-            // Trigger a native system notification
-            await LocalNotifications.schedule({
-                notifications: [
-                    {
-                        title: notif.title,
-                        body: notif.message,
-                        id: Math.floor(Math.random() * 10000),
-                        schedule: { at: new Date(Date.now() + 1000) },
-                        sound: 'default',
-                        attachments: [],
-                        actionTypeId: '',
-                        extra: null
-                    }
-                ]
-            })
-        } catch (e) {
-            console.error('Failed to show local notification', e)
-        }
-    }
 
     return null // This component doesn't render anything
 }

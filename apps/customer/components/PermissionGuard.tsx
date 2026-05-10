@@ -13,36 +13,36 @@ export default function PermissionGuard({ children }: { children: React.ReactNod
     const [showOverlay, setShowOverlay] = useState(false)
 
     useEffect(() => {
+        const checkPermissions = async () => {
+            if (!Capacitor.isNativePlatform()) {
+                setLoading(false)
+                return
+            }
+
+            try {
+                // Check Location
+                const locStatus = await Geolocation.checkPermissions()
+                
+                // Check Notifications
+                const notifStatus = await PushNotifications.checkPermissions()
+
+                setStatus({
+                    location: locStatus.location,
+                    notifications: notifStatus.receive
+                })
+
+                if (locStatus.location !== 'granted' || notifStatus.receive !== 'granted') {
+                    setShowOverlay(true)
+                }
+            } catch (e) {
+                console.error('Permission check failed', e)
+            } finally {
+                setLoading(false)
+            }
+        }
+
         checkPermissions()
     }, [])
-
-    const checkPermissions = async () => {
-        if (!Capacitor.isNativePlatform()) {
-            setLoading(false)
-            return
-        }
-
-        try {
-            // Check Location
-            const locStatus = await Geolocation.checkPermissions()
-            
-            // Check Notifications
-            const notifStatus = await PushNotifications.checkPermissions()
-
-            setStatus({
-                location: locStatus.location,
-                notifications: notifStatus.receive
-            })
-
-            if (locStatus.location !== 'granted' || notifStatus.receive !== 'granted') {
-                setShowOverlay(true)
-            }
-        } catch (e) {
-            console.error('Permission check failed', e)
-        } finally {
-            setLoading(false)
-        }
-    }
 
     const requestAll = async () => {
         setLoading(true)
