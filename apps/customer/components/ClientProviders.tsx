@@ -29,20 +29,29 @@ function BackButtonHandler() {
     const pathname = usePathname()
 
     useEffect(() => {
-        const backListener = App.addListener('backButton', (data) => {
-            if (pathname === '/' || pathname === '/login') {
-                // If on home or login, exit the app
-                App.exitApp()
-            } else {
-                // Otherwise go back in history
-                router.back()
-            }
-        })
+        let isMounted = true
+        const startListener = async () => {
+            const listener = await App.addListener('backButton', (data) => {
+                if (!isMounted) return
+                
+                // Only exit if exactly on home or login
+                const currentPath = window.location.pathname
+                if (currentPath === '/' || currentPath === '/login') {
+                    App.exitApp()
+                } else {
+                    router.back()
+                }
+            })
+            return listener
+        }
+
+        const listenerPromise = startListener()
 
         return () => {
-            backListener.then(l => l.remove())
+            isMounted = false
+            listenerPromise.then(l => l.remove())
         }
-    }, [pathname, router])
+    }, [router]) // Remove pathname dependency to avoid re-adding listener on every navigation
 
     return null
 }

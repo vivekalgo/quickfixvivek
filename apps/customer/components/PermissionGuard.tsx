@@ -47,16 +47,27 @@ export default function PermissionGuard({ children }: { children: React.ReactNod
     const requestAll = async () => {
         setLoading(true)
         try {
-            // Request Location
-            await Geolocation.requestPermissions()
-            
-            // Request Notifications
-            await PushNotifications.requestPermissions()
+            if (Capacitor.isNativePlatform()) {
+                await Geolocation.requestPermissions()
+                await PushNotifications.requestPermissions()
+                
+                // Re-check status instead of reloading
+                const locStatus = await Geolocation.checkPermissions()
+                const notifStatus = await PushNotifications.checkPermissions()
+                
+                setStatus({
+                    location: locStatus.location,
+                    notifications: notifStatus.receive
+                })
 
-            setShowOverlay(false)
-            window.location.reload() // Refresh to pick up changes
+                if (locStatus.location === 'granted' && notifStatus.receive === 'granted') {
+                    setShowOverlay(false)
+                }
+            } else {
+                setShowOverlay(false)
+            }
         } catch (e) {
-            alert('Please enable permissions in your device settings to continue.')
+            console.error('Permission request failed', e)
         } finally {
             setLoading(false)
         }
