@@ -4,11 +4,12 @@ import Image from 'next/image'
 import { supabase } from '@/lib/data'
 import NotificationListener from '@/components/NotificationListener'
 
-type View = 'dashboard' | 'services' | 'orders' | 'earnings' | 'profile'
+type View = 'dashboard' | 'services' | 'orders' | 'earnings' | 'profile' | 'emergency'
 
 const NAV = [
     { id: 'dashboard' as View, icon: '📊', label: 'Dashboard' },
     { id: 'orders' as View, icon: '📋', label: 'Incoming Orders' },
+    { id: 'emergency' as View, icon: '🚨', label: 'Emergency Pool' },
     { id: 'services' as View, icon: '🔧', label: 'Manage Services' },
     { id: 'earnings' as View, icon: '💰', label: 'Earnings' },
     { id: 'profile' as View, icon: '🏪', label: 'Shop Profile' },
@@ -172,8 +173,13 @@ function ServicesView({ shop }: any) {
     )
 }
 
-function OrdersView({ shopBookings }: any) {
+function OrdersView({ shopBookings, refresh }: any) {
     const [orders, setOrders] = useState(shopBookings)
+    
+    useEffect(() => {
+        setOrders(shopBookings)
+    }, [shopBookings])
+
     const updateStatus = async (id: string, status: string) => {
         await supabase.from('bookings').update({ status }).eq('id', id)
         setOrders((prev:any) => prev.map((o:any) => o.id === id ? { ...o, status } : o))
@@ -181,7 +187,12 @@ function OrdersView({ shopBookings }: any) {
 
     return (
         <div className="animate-fade-in">
-            <h2 className="text-2xl font-black text-[#1A1A2E] mb-6">Incoming Orders</h2>
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-black text-[#1A1A2E]">Incoming Orders</h2>
+                <button onClick={refresh} className="bg-gray-100 text-[#1A1A2E] px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 active:scale-95 transition-transform">
+                    🔄 Refresh
+                </button>
+            </div>
             {orders.length === 0 ? (
                 <div className="bg-white rounded-2xl p-16 text-center border border-gray-100">
                     <span className="text-6xl">📋</span>
@@ -559,25 +570,29 @@ export default function ProviderDashboard() {
     const [shop, setShop] = useState<any>(null)
     const [shopBookings, setShopBookings] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-
     const [mounted, setMounted] = useState(false)
+
+    const checkAuth = async () => {
+        const savedShopId = localStorage.getItem('providerShopId')
+        if (savedShopId) {
+            const { data: s, error: sError } = await supabase.from('shops').select('*, services(*)').eq('id', savedShopId).single()
+            if (sError) {
+                console.error('Shop Fetch Error:', sError)
+                if (sError.code === 'PGRST116') localStorage.removeItem('providerShopId')
+            }
+            
+            if (s) {
+                setShop(s)
+                const { data: b, error: bError } = await supabase.from('bookings').select('*, users(name, phone), services(name)').eq('shop_id', s.id)
+                if (bError) console.error('Bookings Fetch Error:', bError)
+                if (b) setShopBookings(b)
+            }
+        }
+        setLoading(false)
+    }
 
     useEffect(() => {
         setMounted(true)
-        const checkAuth = async () => {
-            const savedShopId = localStorage.getItem('providerShopId')
-            if (savedShopId) {
-                const { data: s } = await supabase.from('shops').select('*, services(*)').eq('id', savedShopId).single()
-                if (s) {
-                    setShop(s)
-                    const { data: b } = await supabase.from('bookings').select('*, users(name, phone), services(name)').eq('shop_id', s.id)
-                    if (b) setShopBookings(b)
-                } else {
-                    localStorage.removeItem('providerShopId')
-                }
-            }
-            setLoading(false)
-        }
         checkAuth()
     }, [])
 
@@ -588,12 +603,13 @@ export default function ProviderDashboard() {
         if (b) setShopBookings(b)
     }
 
-    // Realtime Sync for Bookings
+    // Realtime Sync for All Bookings (Normal + Emergency)
     useEffect(() => {
         if (!shop?.id) return
 
-        const channel = supabase
-            .channel(`shop_${shop.id}_bookings`)
+        // 1. Normal Bookings Listener
+        const normalChannel = supabase
+            .channel(`shop_${shop.id}_normal_bookings`)
             .on(
                 'postgres_changes',
                 {
@@ -603,9 +619,8 @@ export default function ProviderDashboard() {
                     filter: `shop_id=eq.${shop.id}`
                 },
                 async (payload) => {
-                    console.log('Realtime update:', payload)
+                    console.log('Normal Booking update:', payload)
                     if (payload.eventType === 'INSERT') {
-                        // Fetch the full record with user details
                         const { data: newBooking } = await supabase
                             .from('bookings')
                             .select('*, users(name, phone), services(name)')
@@ -621,8 +636,27 @@ export default function ProviderDashboard() {
             )
             .subscribe()
 
+        // 2. Emergency Bookings Listener (Global or filtered by status)
+        const emergencyChannel = supabase
+            .channel('emergency_bookings_sync')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'emergency_bookings'
+                },
+                async (payload) => {
+                    console.log('New Emergency Booking:', payload)
+                    // You might want to refresh the dashboard or show a special alert
+                    // For now, we'll let the NotificationListener handle the alert
+                }
+            )
+            .subscribe()
+
         return () => {
-            supabase.removeChannel(channel)
+            supabase.removeChannel(normalChannel)
+            supabase.removeChannel(emergencyChannel)
         }
     }, [shop?.id])
 
@@ -637,11 +671,91 @@ export default function ProviderDashboard() {
     
     if (!shop) return <ProviderAuth onLogin={handleLogin} />
 
+function EmergencyView({ shop }: { shop: any }) {
+    const [emergencies, setEmergencies] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+
+    const fetchEmergencies = async () => {
+        const { data } = await supabase
+            .from('emergency_bookings')
+            .select('*')
+            .eq('status', 'EMERGENCY_PENDING')
+            .order('created_at', { ascending: false })
+        if (data) setEmergencies(data)
+        setLoading(false)
+    }
+
+    useEffect(() => {
+        fetchEmergencies()
+        const channel = supabase.channel('emergency_pool_sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_bookings' }, () => {
+                fetchEmergencies()
+            })
+            .subscribe()
+        return () => { supabase.removeChannel(channel) }
+    }, [])
+
+    const acceptEmergency = async (id: string) => {
+        const { error } = await supabase
+            .from('emergency_bookings')
+            .update({ 
+                status: 'EMERGENCY_ACCEPTED',
+                shop_id: shop.id // Assign to current shop
+            })
+            .eq('id', id)
+        if (!error) {
+            alert('Emergency accepted! Customer details are now visible in your orders.')
+            fetchEmergencies()
+        }
+    }
+
+    if (loading) return <div className="text-center py-10 font-bold text-gray-400">Loading Emergencies...</div>
+
+    return (
+        <div className="animate-fade-in">
+            <h2 className="text-2xl font-black text-[#1A1A2E] mb-6 flex items-center gap-2">
+                <span className="animate-pulse">🚨</span> Emergency Pool
+            </h2>
+            
+            {emergencies.length === 0 ? (
+                <div className="bg-white rounded-3xl p-16 text-center border border-gray-100 shadow-sm">
+                    <p className="text-gray-400 font-bold">No active emergencies in your area.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {emergencies.map(em => (
+                        <div key={em.id} className="bg-white rounded-3xl p-6 border-2 border-red-50 shadow-lg relative overflow-hidden">
+                            <div className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-black px-4 py-1 rounded-bl-xl uppercase">
+                                {em.priority_level}
+                            </div>
+                            <h3 className="font-black text-[#1A1A2E] text-lg mb-1">{em.problem_title}</h3>
+                            <p className="text-gray-400 text-sm mb-4 line-clamp-2">{em.description}</p>
+                            
+                            <div className="bg-gray-50 rounded-2xl p-4 mb-5 space-y-2">
+                                <p className="text-xs font-bold text-gray-600 flex items-center gap-2">📍 {em.address}</p>
+                                <p className="text-xs font-bold text-red-600 flex items-center gap-2">💰 Emergency Charge: ₹{em.emergency_charge}</p>
+                            </div>
+
+                            <button 
+                                onClick={() => acceptEmergency(em.id)}
+                                className="w-full bg-[#1A1A2E] text-white py-4 rounded-2xl font-black text-sm active:scale-95 transition-all shadow-lg shadow-gray-200"
+                            >
+                                ✅ ACCEPT EMERGENCY
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
     const renderView = () => {
         switch (activeView) {
             case 'dashboard': return <DashboardView shop={shop} shopBookings={shopBookings} />
             case 'services': return <ServicesView shop={shop} />
-            case 'orders': return <OrdersView shopBookings={shopBookings} />
+            case 'orders': return <OrdersView shopBookings={shopBookings} refresh={() => checkAuth()} />
+            case 'emergency': return <EmergencyView shop={shop} />
             case 'earnings': return <EarningsView shopBookings={shopBookings} />
             case 'profile': return <ShopProfileView shop={shop} setShop={setShop} />
         }

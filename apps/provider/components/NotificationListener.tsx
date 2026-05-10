@@ -40,25 +40,48 @@ export default function NotificationListener({ shop }: { shop: any }) {
             LocalNotifications.requestPermissions()
         }
 
-        // 2. Listen for new notifications for the shop owner
-        const channel = supabase
-            .channel('notifications-channel')
+        // 2. Listen for Normal Bookings (Instant Alert)
+        const bookingChannel = supabase
+            .channel(`shop_${shop.id}_alerts`)
             .on(
                 'postgres_changes',
                 {
                     event: 'INSERT',
                     schema: 'public',
-                    table: 'notifications',
-                    filter: `user_id=eq.${shop.owner_id}`
+                    table: 'bookings',
+                    filter: `shop_id=eq.${shop.id}`
                 },
                 (payload) => {
-                    handleNewNotification(payload.new)
+                    handleNewNotification({
+                        title: '🔔 New Order Received!',
+                        message: `New booking for shop. Check your incoming orders.`
+                    })
+                }
+            )
+            .subscribe()
+
+        // 3. Listen for Emergency Bookings (High Priority Alert)
+        const emergencyChannel = supabase
+            .channel('emergency_alerts')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'emergency_bookings'
+                },
+                (payload) => {
+                    handleNewNotification({
+                        title: '🚨 EMERGENCY REQUEST!',
+                        message: `New emergency: ${payload.new.problem_title}. Respond immediately!`
+                    })
                 }
             )
             .subscribe()
 
         return () => {
-            supabase.removeChannel(channel)
+            supabase.removeChannel(bookingChannel)
+            supabase.removeChannel(emergencyChannel)
         }
     }, [shop?.owner_id])
 
