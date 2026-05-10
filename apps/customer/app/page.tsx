@@ -8,6 +8,7 @@ import BottomNav from '@/components/BottomNav'
 import ShopCard from '@/components/ShopCard'
 import LocationPicker from '@/components/LocationPicker'
 import LoginPromptModal from '@/components/LoginPromptModal'
+import AuthGuard from '@/components/AuthGuard'
 import { CATEGORIES, supabase } from '@/lib/data'
 import {
     getSavedLocation,
@@ -174,6 +175,7 @@ export default function HomePage() {
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
     return (
+        <AuthGuard>
         <div className="pb-24">
             {/* ── Header ── */}
             <div className="px-5 pt-12 pb-4" style={{ background: 'linear-gradient(160deg, #1A1A2E 0%, #0F3460 100%)' }}>
@@ -361,5 +363,6 @@ export default function HomePage() {
                 onSelect={handleLocationSelect}
             />
         </div>
+        </AuthGuard>
     )
 }
