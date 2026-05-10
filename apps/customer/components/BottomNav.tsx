@@ -1,8 +1,9 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/AuthContext'
+import { supabase } from '@/lib/data'
 import LoginPromptModal from './LoginPromptModal'
 
 // Auth-protected nav routes (require login)
