@@ -560,7 +560,10 @@ export default function ProviderDashboard() {
     const [shopBookings, setShopBookings] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
+    const [mounted, setMounted] = useState(false)
+
     useEffect(() => {
+        setMounted(true)
         const checkAuth = async () => {
             const savedShopId = localStorage.getItem('providerShopId')
             if (savedShopId) {
@@ -577,6 +580,8 @@ export default function ProviderDashboard() {
         }
         checkAuth()
     }, [])
+
+    if (!mounted) return null // Prevent SSR/Build crashes
     
     const handleLogin = async (loggedShop: any) => {
         setShop(loggedShop)
