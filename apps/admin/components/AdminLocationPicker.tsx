@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import { Geolocation } from '@capacitor/geolocation'
+import { Capacitor } from '@capacitor/core'
 
 // Dynamically import the map to avoid SSR issues
 const MapPopup = dynamic(() => import('./MapPopup'), { 
@@ -69,13 +71,34 @@ export default function AdminLocationPicker({ isOpen, onClose, onSelect }: any) 
         }, 500))
     }
 
-    const useCurrentLocation = () => {
+    const useCurrentLocation = async () => {
         setLoading(true)
-        navigator.geolocation.getCurrentPosition(
-            (pos) => { setPosition([pos.coords.latitude, pos.coords.longitude]); setLoading(false); setQuery('') },
-            (err) => { alert('Please enable GPS permissions.'); setLoading(false) },
-            { enableHighAccuracy: true }
-        )
+        try {
+            if (Capacitor.isNativePlatform()) {
+                // 1. Check & Request Permissions (Native)
+                const perm = await Geolocation.checkPermissions()
+                if (perm.location === 'prompt' || perm.location === 'prompt-with-description') {
+                    await Geolocation.requestPermissions()
+                }
+
+                // 2. Get Position
+                const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true })
+                setPosition([pos.coords.latitude, pos.coords.longitude])
+                setQuery('')
+            } else {
+                // Web Fallback
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => { setPosition([pos.coords.latitude, pos.coords.longitude]); setQuery('') },
+                    (err) => { alert('Please enable GPS permissions in your browser.') },
+                    { enableHighAccuracy: true }
+                )
+            }
+        } catch (err) {
+            console.error('Location Error:', err)
+            alert('Could not get your current location. Please ensure GPS is ON.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const selectSuggestion = (s: any) => {
