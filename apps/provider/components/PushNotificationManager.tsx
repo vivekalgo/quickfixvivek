@@ -30,7 +30,13 @@ export default function PushNotificationManager({ shop }: { shop: any }) {
                 })
 
                 // 2. Register
+                // IMPORTANT: Native registration will crash the app if google-services.json (Android) 
+                // is missing in the native folders.
+                // Disabling for now to prevent crashes.
+                /*
                 await PushNotifications.register()
+                */
+                console.log('Provider Push Registration skipped: Missing native config.')
 
                 // 3. Listen for token
                 PushNotifications.addListener('registration', async (token) => {

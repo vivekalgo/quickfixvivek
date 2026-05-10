@@ -14,16 +14,6 @@ export default function NotificationListener({ shop }: { shop: any }) {
                 return
             }
             try {
-                // Ensure the channel exists for Android
-                await LocalNotifications.createChannel({
-                    id: 'quickfix-provider-alerts',
-                    name: 'New Order Alerts',
-                    importance: 5,
-                    description: 'Alerts for incoming bookings',
-                    sound: 'default',
-                    visibility: 1
-                })
-
                 await LocalNotifications.schedule({
                     notifications: [
                         {
@@ -42,10 +32,24 @@ export default function NotificationListener({ shop }: { shop: any }) {
             }
         }
 
-        // 1. Request permission
-        if (Capacitor.isNativePlatform()) {
-            LocalNotifications.requestPermissions()
+        // 1. Request permission & Setup Channel
+        const setupNotifications = async () => {
+            if (!Capacitor.isNativePlatform()) return
+            try {
+                await LocalNotifications.requestPermissions()
+                await LocalNotifications.createChannel({
+                    id: 'quickfix-provider-alerts',
+                    name: 'New Order Alerts',
+                    importance: 5,
+                    description: 'Alerts for incoming bookings',
+                    sound: 'default',
+                    visibility: 1
+                })
+            } catch (e) {
+                console.error('Provider local notification setup failed', e)
+            }
         }
+        setupNotifications()
 
         // 2. Listen for Normal Bookings (Instant Alert)
         const bookingChannel = supabase

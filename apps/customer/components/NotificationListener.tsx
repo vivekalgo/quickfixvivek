@@ -13,22 +13,10 @@ export default function NotificationListener() {
 
         const handleNewNotification = async (notif: any) => {
             if (!Capacitor.isNativePlatform()) {
-                // For web, we can't do much without a service worker, 
-                // but we can at least show the in-app alert we have.
                 return
             }
 
             try {
-                // Ensure the channel exists for Android
-                await LocalNotifications.createChannel({
-                    id: 'quickfix-alerts',
-                    name: 'Service Updates',
-                    importance: 5,
-                    description: 'Alerts for booking status and messages',
-                    sound: 'default',
-                    visibility: 1
-                })
-
                 await LocalNotifications.schedule({
                     notifications: [
                         {
@@ -47,8 +35,24 @@ export default function NotificationListener() {
             }
         }
 
-        // 1. Request permission for local notifications
-        LocalNotifications.requestPermissions()
+        // 1. Request permission for local notifications & Setup Channel
+        const setupNotifications = async () => {
+            if (!Capacitor.isNativePlatform()) return
+            try {
+                await LocalNotifications.requestPermissions()
+                await LocalNotifications.createChannel({
+                    id: 'quickfix-alerts',
+                    name: 'Service Updates',
+                    importance: 5,
+                    description: 'Alerts for booking status and messages',
+                    sound: 'default',
+                    visibility: 1
+                })
+            } catch (e) {
+                console.error('Local notification setup failed', e)
+            }
+        }
+        setupNotifications()
 
         // 2. Listen for new notifications in Supabase
         const channel = supabase

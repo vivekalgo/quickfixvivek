@@ -33,7 +33,13 @@ export default function PushNotificationManager() {
                 })
 
                 // 2. Register with FCM/APNS
+                // IMPORTANT: Native registration will crash the app if google-services.json (Android) 
+                // or GoogleService-Info.plist (iOS) is missing in the native folders.
+                // Disabling for now to prevent crashes. Re-enable after adding the files.
+                /*
                 await PushNotifications.register()
+                */
+               console.log('Push Registration skipped: Missing native config files.')
 
                 // 3. Listen for token registration
                 PushNotifications.addListener('registration', async (token) => {
