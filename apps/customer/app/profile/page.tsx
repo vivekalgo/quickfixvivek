@@ -9,13 +9,11 @@ import { supabase } from '@/lib/data'
 
 const MENU_ITEMS = [
     { icon: '📋', label: 'My Orders', href: '/orders' },
-    { icon: '📍', label: 'Saved Addresses', href: '#' },
-    { icon: '💳', label: 'Payment Methods', href: '#' },
-    { icon: '🎁', label: 'Offers & Coupons', href: '#' },
-    { icon: '⭐', label: 'My Reviews', href: '#' },
+    { icon: '📍', label: 'Saved Addresses', href: '/profile/addresses' },
+    { icon: '⭐', label: 'My Reviews', href: '/profile/reviews' },
     { icon: '🔔', label: 'Notifications', href: '/notifications' },
-    { icon: '❓', label: 'Help & Support', href: '#' },
-    { icon: '📜', label: 'Terms & Privacy', href: '#' },
+    { icon: '❓', label: 'Help & Support', href: '/profile/support' },
+    { icon: '📜', label: 'Terms & Privacy', href: '/profile/terms' },
 ]
 
 export default function ProfilePage() {
@@ -137,32 +135,18 @@ export default function ProfilePage() {
 
             <div className="px-5">
                 {/* Menu */}
-                <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 mb-5">
+                <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 mb-8">
                     {MENU_ITEMS.map((item, i) => (
                         <Link key={item.label} href={item.href}>
-                            <div className={`flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors ${i < MENU_ITEMS.length - 1 ? 'border-b border-gray-50' : ''}`}>
+                            <div className={`flex items-center gap-3 px-4 py-4 active:bg-gray-50 transition-colors ${i < MENU_ITEMS.length - 1 ? 'border-b border-gray-50' : ''}`}>
                                 <span className="text-xl w-8 text-center">{item.icon}</span>
-                                <span className="flex-1 text-sm font-medium text-[#1A1A2E]">{item.label}</span>
+                                <span className="flex-1 text-sm font-bold text-[#1A1A2E]">{item.label}</span>
                                 <svg width="16" height="16" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24">
                                     <path d="m9 18 6-6-6-6" />
                                 </svg>
                             </div>
                         </Link>
                     ))}
-                </div>
-
-                {/* Become a Provider CTA */}
-                <div className="bg-gradient-to-r from-[#1A1A2E] to-[#0F3460] rounded-2xl p-5 mb-5 flex items-center gap-4">
-                    <span className="text-4xl">🔧</span>
-                    <div className="flex-1">
-                        <p className="text-white font-bold text-sm">Own a repair shop?</p>
-                        <p className="text-white/60 text-xs">List your services on QuickFix</p>
-                    </div>
-                    <a href="http://localhost:3001" target="_blank" rel="noopener noreferrer">
-                        <button className="bg-[#FF6B35] text-white text-xs font-bold px-3 py-2 rounded-xl">
-                            Join Now
-                        </button>
-                    </a>
                 </div>
 
                 {/* Logout */}

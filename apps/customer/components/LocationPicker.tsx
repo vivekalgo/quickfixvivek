@@ -12,9 +12,9 @@ const MapPopup = dynamic(() => import('./MapPopup'), {
 export default function LocationPicker({ isOpen, onClose, onSelect, initialLocation }: any) {
     const [query, setQuery] = useState('')
     const [suggestions, setSuggestions] = useState<any[]>([])
-    // Default Bangalore
-    const [position, setPosition] = useState<[number, number]>([12.9716, 77.5946])
-    const [addressText, setAddressText] = useState(initialLocation || 'Koramangala, Bangalore')
+    // Default starting point (neutral or initial)
+    const [position, setPosition] = useState<[number, number]>(initialLocation?.position || [20.5937, 78.9629]) // India center
+    const [addressText, setAddressText] = useState(initialLocation?.address || 'Detecting your location...')
     const [loading, setLoading] = useState(false)
     const [mapRenderKey, setMapRenderKey] = useState(0)
     const [showMap, setShowMap] = useState(false)

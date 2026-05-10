@@ -63,23 +63,24 @@ export default function OrdersPage() {
     }
 
     useEffect(() => {
+        if (!user) return
         fetchAllBookings()
 
         // Real-time Sync for Normal Bookings
-        const normalSub = supabase.channel('my-orders-normal')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `user_id=eq.${user?.uid}` }, () => fetchAllBookings())
+        const normalSub = supabase.channel(`my-orders-normal-${user.uid}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `user_id=eq.${user.uid}` }, () => fetchAllBookings())
             .subscribe()
 
         // Real-time Sync for Emergency Bookings
-        const emergencySub = supabase.channel('my-orders-emergency')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_bookings', filter: `user_id=eq.${user?.uid}` }, () => fetchAllBookings())
+        const emergencySub = supabase.channel(`my-orders-emergency-${user.uid}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_bookings', filter: `user_id=eq.${user.uid}` }, () => fetchAllBookings())
             .subscribe()
 
         return () => {
             supabase.removeChannel(normalSub)
             supabase.removeChannel(emergencySub)
         }
-    }, [user])
+    }, [user?.uid]) // Use user.uid as dependency for stability
 
     const handleCancel = async (id: string) => {
         setIsProcessing(true)
