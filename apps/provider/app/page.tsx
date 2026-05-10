@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/data'
 import NotificationListener from '@/components/NotificationListener'
+import PushNotificationManager from '@/components/PushNotificationManager'
 
 type View = 'dashboard' | 'services' | 'orders' | 'earnings' | 'profile'
 
@@ -688,6 +689,7 @@ export default function ProviderDashboard() {
     return (
         <div className="min-h-screen flex bg-[#F4F6F9]">
             <NotificationListener shop={shop} />
+            <PushNotificationManager shop={shop} />
             {/* Sidebar */}
             <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1A1A2E] transform transition-transform lg:translate-x-0 lg:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 {/* Logo */}

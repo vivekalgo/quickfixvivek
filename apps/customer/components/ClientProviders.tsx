@@ -16,6 +16,7 @@ import { AuthProvider } from '@/lib/AuthContext'
 import { getSavedLocation } from '@/lib/locationPermission'
 import PermissionGuard from '@/components/PermissionGuard'
 import NotificationListener from '@/components/NotificationListener'
+import PushNotificationManager from '@/components/PushNotificationManager'
 
 // Routes that do NOT require a location to be set first
 const LOCATION_EXEMPT = ['/login', '/location-setup']
@@ -74,6 +75,7 @@ export default function ClientProviders({ children }: { children: React.ReactNod
     return (
         <AuthProvider>
             <PermissionGuard>
+                <PushNotificationManager />
                 <NotificationListener />
                 <BackButtonHandler />
                 <LocationGate>
