@@ -61,6 +61,22 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
+      - name: Build Customer App (Next.js)
+        run: |
+          cd apps/customer
+          npm run build
+
+      - name: Capacitor Sync (Customer)
+        run: |
+          cd apps/customer
+          npx cap sync android
+
+      - name: Build Customer APK (Gradle)
+        run: |
+          cd apps/customer/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
       - name: Upload Admin APK
         uses: actions/upload-artifact@v4
         with:
@@ -72,3 +88,9 @@ jobs:
         with:
           name: QuickFix-Provider-App
           path: apps/provider/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload Customer APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuickFix-Customer-App
+          path: apps/customer/android/app/build/outputs/apk/debug/app-debug.apk
