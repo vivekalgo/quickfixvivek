@@ -36,7 +36,28 @@ export default function HomePage() {
     const [shops, setShops] = useState<any[]>([])
     const [categories, setCategories] = useState<any[]>(CATEGORIES)
     const [loading, setLoading] = useState(true)
+    const [unreadCount, setUnreadCount] = useState(0)
     const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+
+    // Fetch unread notifications count
+    useEffect(() => {
+        if (!user) return
+        const fetchUnread = async () => {
+            const { count } = await supabase
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.uid)
+                .eq('is_read', false)
+            setUnreadCount(count || 0)
+        }
+        fetchUnread()
+
+        const sub = supabase.channel(`unread-count-${user.uid}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.uid}` }, () => fetchUnread())
+            .subscribe()
+        
+        return () => { supabase.removeChannel(sub) }
+    }, [user?.uid])
 
     // ── Load saved location from storage ────────────────────────────────────
     useEffect(() => {
@@ -167,7 +188,11 @@ export default function HomePage() {
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
                             </svg>
                         </div>
-                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF6B35] rounded-full text-white text-[9px] font-bold flex items-center justify-center">0</span>
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF6B35] rounded-full text-white text-[9px] font-bold flex items-center justify-center animate-bounce-subtle">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
                     </Link>
                 </div>
 

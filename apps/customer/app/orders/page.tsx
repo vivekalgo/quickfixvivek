@@ -20,67 +20,89 @@ export default function OrdersPage() {
     const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('all')
     const [bookingsRaw, setBookingsRaw] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const [cancellingId, setCancellingId] = useState<string | null>(null)
     const [isProcessing, setIsProcessing] = useState(false)
     const { user } = useAuth()
 
     const fetchAllBookings = async () => {
         if (!user) return
+        setError(null)
         
-        // 1. Fetch Normal Bookings
-        const { data: normal } = await supabase
-            .from('bookings')
-            .select('*, shops(*), services(*)')
-            .eq('user_id', user.uid)
-            .order('created_at', { ascending: false })
+        try {
+            // 1. Fetch Normal Bookings
+            const { data: normal, error: nErr } = await supabase
+                .from('bookings')
+                .select('*, shops(*), services(*)')
+                .eq('user_id', user.uid)
+                .order('created_at', { ascending: false })
             
-        // 2. Fetch Emergency Bookings
-        const { data: emergency } = await supabase
-            .from('emergency_bookings')
-            .select('*')
-            .eq('user_id', user.uid)
-            .order('created_at', { ascending: false })
+            if (nErr) throw nErr
+                
+            // 2. Fetch Emergency Bookings
+            const { data: emergency, error: eErr } = await supabase
+                .from('emergency_bookings')
+                .select('*')
+                .eq('user_id', user.uid)
+                .order('created_at', { ascending: false })
 
-        const combined = [
-            ...(normal || []).map((b: any) => ({
-                ...b,
-                isEmergency: false,
-                shopName: b.shops?.name || 'Shop',
-                shopImage: b.shops?.images?.[0],
-                serviceName: b.services?.name || 'Service',
-            })),
-            ...(emergency || []).map((e: any) => ({
-                ...e,
-                isEmergency: true,
-                shopName: 'Emergency Support',
-                serviceName: e.problem_title || 'Emergency Service',
-                service_price: e.emergency_charge,
-            }))
-        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-
-        setBookingsRaw(combined)
-        setLoading(false)
+            if (eErr) throw eErr
+    
+            const combined = [
+                ...(normal || []).map((b: any) => ({
+                    ...b,
+                    isEmergency: false,
+                    shopName: b.shops?.name || 'Shop',
+                    shopImage: b.shops?.images?.[0],
+                    serviceName: b.services?.name || 'Service',
+                })),
+                ...(emergency || []).map((e: any) => ({
+                    ...e,
+                    isEmergency: true,
+                    shopName: 'Emergency Support',
+                    serviceName: e.problem_title || 'Emergency Service',
+                    service_price: e.emergency_charge,
+                }))
+            ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    
+            setBookingsRaw(combined)
+        } catch (err: any) {
+            console.error('Fetch Orders Error:', err)
+            setError(err.message || 'Failed to load orders. Please check your connection.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     useEffect(() => {
         if (!user) return
         fetchAllBookings()
 
-        // Real-time Sync for Normal Bookings
+        // Real-time Sync for Normal Bookings - ensure filter is valid
         const normalSub = supabase.channel(`my-orders-normal-${user.uid}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `user_id=eq.${user.uid}` }, () => fetchAllBookings())
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'bookings', 
+                filter: `user_id=eq.${user.uid}` 
+            }, () => fetchAllBookings())
             .subscribe()
 
         // Real-time Sync for Emergency Bookings
         const emergencySub = supabase.channel(`my-orders-emergency-${user.uid}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_bookings', filter: `user_id=eq.${user.uid}` }, () => fetchAllBookings())
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'emergency_bookings', 
+                filter: `user_id=eq.${user.uid}` 
+            }, () => fetchAllBookings())
             .subscribe()
 
         return () => {
             supabase.removeChannel(normalSub)
             supabase.removeChannel(emergencySub)
         }
-    }, [user?.uid]) // Use user.uid as dependency for stability
+    }, [user?.uid])
 
     const handleCancel = async (id: string) => {
         setIsProcessing(true)
@@ -123,6 +145,14 @@ export default function OrdersPage() {
             <div className="px-5 pt-4">
                 {loading ? (
                     <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin"></div></div>
+                ) : error ? (
+                    <div className="text-center py-20 px-10">
+                        <span className="text-5xl">⚠️</span>
+                        <p className="text-red-500 font-bold mt-4">{error}</p>
+                        <button onClick={fetchAllBookings} className="mt-4 bg-[#1A1A2E] text-white px-6 py-2 rounded-xl font-bold active:scale-95 transition-transform">
+                            Try Again
+                        </button>
+                    </div>
                 ) : bookings.length === 0 ? (
                     <div className="text-center py-20">
                         <span className="text-6xl">📋</span>
