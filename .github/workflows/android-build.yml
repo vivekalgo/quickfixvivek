@@ -1,0 +1,51 @@
+name: Android Build APK
+
+on:
+  push:
+    branches: ["main", "master"]
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Build Customer App (Next.js)
+        run: |
+          cd apps/customer
+          npm run build
+
+      - name: Capacitor Sync
+        run: |
+          cd apps/customer
+          npx cap sync android
+
+      - name: Build Android APK (Gradle)
+        run: |
+          cd apps/customer/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuickFix-Customer-App
+          path: apps/customer/android/app/build/outputs/apk/debug/app-debug.apk

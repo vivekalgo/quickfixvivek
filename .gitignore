@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+.env
+.env.local
+.env.*.local
+coverage/
+
+# Capacitor / Android
+apps/*/android/app/build/
+apps/*/android/.gradle/
+apps/*/android/local.properties
+apps/*/android/.idea/
+*.apk
+*.aab

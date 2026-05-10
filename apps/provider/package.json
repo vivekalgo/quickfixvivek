@@ -1,0 +1,34 @@
+{
+    "name": "quickfix-provider",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev --webpack -p 3004",
+        "build": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next build --webpack && next export",
+        "start": "npx serve@latest -l 3004 out",
+        "lint": "eslint ."
+    },
+    "dependencies": {
+        "@capacitor/android": "^8.2.0",
+        "@capacitor/core": "^8.2.0",
+        "@capacitor/geolocation": "^8.2.0",
+        "@capacitor/local-notifications": "^8.1.0",
+        "@capacitor/push-notifications": "^8.0.4",
+        "lucide-react": "^0.378.0",
+        "next": "16.2.4",
+        "react": "^18",
+        "react-dom": "^18"
+    },
+    "devDependencies": {
+        "@capacitor/cli": "^8.2.0",
+        "@types/node": "^22.0.0",
+        "@types/react": "^18",
+        "@types/react-dom": "^18",
+        "autoprefixer": "^10.0.1",
+        "eslint": "^9.39.1",
+        "eslint-config-next": "16.2.4",
+        "postcss": "^8",
+        "tailwindcss": "^3.4.1",
+        "typescript": "^5"
+    }
+}

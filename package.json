@@ -1,0 +1,27 @@
+{
+  "name": "quickfix-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:customer",
+    "dev:customer": "npm run dev --workspace=apps/customer",
+    "dev:provider": "npm run dev --workspace=apps/provider",
+    "dev:admin": "npm run dev --workspace=apps/admin",
+    "start:customer": "npm run start --workspace=apps/customer",
+    "start:provider": "npm run start --workspace=apps/provider",
+    "start:admin": "npm run start --workspace=apps/admin",
+    "start:all": "npm run start --workspaces",
+    "build:all": "npm run build --workspaces",
+    "lint:all": "npm run lint --workspaces",
+    "check:all": "npm run lint:all && npm run build:all",
+    "smoke:all": "node scripts/smoke-test.mjs",
+    "release:check": "npm run check:all && npm run smoke:all"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.100.0"
+  }
+}
