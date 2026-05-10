@@ -35,7 +35,6 @@ export default function OrdersPage() {
                 .from('bookings')
                 .select('*, shops(*), services(*)')
                 .eq('user_id', user.uid)
-                .order('created_at', { ascending: false })
             
             if (nErr) throw nErr
                 
@@ -44,7 +43,6 @@ export default function OrdersPage() {
                 .from('emergency_bookings')
                 .select('*')
                 .eq('user_id', user.uid)
-                .order('created_at', { ascending: false })
 
             if (eErr) throw eErr
     
@@ -63,7 +61,11 @@ export default function OrdersPage() {
                     serviceName: e.problem_title || 'Emergency Service',
                     service_price: e.emergency_charge,
                 }))
-            ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            ].sort((a, b) => {
+                const dateA = new Date(`${a.date || ''} ${a.time || ''}`).getTime()
+                const dateB = new Date(`${b.date || ''} ${b.time || ''}`).getTime()
+                return (dateB || 0) - (dateA || 0)
+            })
     
             setBookingsRaw(combined)
         } catch (err: any) {
