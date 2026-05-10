@@ -581,8 +581,6 @@ export default function ProviderDashboard() {
         checkAuth()
     }, [])
 
-    if (!mounted) return null // Prevent SSR/Build crashes
-    
     const handleLogin = async (loggedShop: any) => {
         setShop(loggedShop)
         localStorage.setItem('providerShopId', loggedShop.id)
@@ -627,7 +625,9 @@ export default function ProviderDashboard() {
             supabase.removeChannel(channel)
         }
     }, [shop?.id])
-    
+
+    if (!mounted) return null // Prevent SSR/Build crashes
+
     const handleLogout = () => {
         localStorage.removeItem('providerShopId')
         setShop(null)
