@@ -12,25 +12,33 @@ export default function NotificationListener() {
         if (!user) return
 
         const handleNewNotification = async (notif: any) => {
-            // Web Fallback: Show a simple alert if not on mobile
             if (!Capacitor.isNativePlatform()) {
-                alert(`📢 ${notif.title}\n\n${notif.message}`)
+                // For web, we can't do much without a service worker, 
+                // but we can at least show the in-app alert we have.
                 return
             }
 
             try {
-                // Trigger a native system notification
+                // Ensure the channel exists for Android
+                await LocalNotifications.createChannel({
+                    id: 'quickfix-alerts',
+                    name: 'Service Updates',
+                    importance: 5,
+                    description: 'Alerts for booking status and messages',
+                    sound: 'default',
+                    visibility: 1
+                })
+
                 await LocalNotifications.schedule({
                     notifications: [
                         {
                             title: notif.title,
                             body: notif.message,
                             id: Math.floor(Math.random() * 10000),
-                            schedule: { at: new Date(Date.now() + 1000) },
+                            schedule: { at: new Date(Date.now() + 500) },
                             sound: 'default',
-                            attachments: [],
-                            actionTypeId: '',
-                            extra: null
+                            smallIcon: 'ic_stat_name', // Standard Capacitor icon name
+                            channelId: 'quickfix-alerts'
                         }
                     ]
                 })

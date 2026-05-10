@@ -50,6 +50,30 @@ export default function BottomNav() {
     const { user } = useAuth()
     const [showLoginPrompt, setShowLoginPrompt] = useState(false)
     const [pendingHref, setPendingHref] = useState('/')
+    const [notifCount, setNotifCount] = useState(0)
+
+    const fetchNotifCount = async () => {
+        if (!user) return
+        const { count } = await supabase
+            .from('notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.uid)
+            .eq('is_read', false)
+        setNotifCount(count || 0)
+    }
+
+    useEffect(() => {
+        fetchNotifCount()
+        if (!user) return
+
+        const channel = supabase.channel('nav-notif-count')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.uid}` }, () => {
+                fetchNotifCount()
+            })
+            .subscribe()
+        
+        return () => { supabase.removeChannel(channel) }
+    }, [user])
 
     const handleNavClick = (e: React.MouseEvent, href: string) => {
         if (!user && AUTH_REQUIRED.includes(href)) {
@@ -70,9 +94,14 @@ export default function BottomNav() {
                                 key={href}
                                 href={href}
                                 onClick={(e) => handleNavClick(e, href)}
-                                className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all"
+                                className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all relative"
                             >
                                 <Icon active={isActive} />
+                                {href === '/notifications' && notifCount > 0 && (
+                                    <span className="absolute top-1 right-2 bg-red-500 text-white text-[8px] font-black w-4 h-4 flex items-center justify-center rounded-full border-2 border-white">
+                                        {notifCount > 9 ? '9+' : notifCount}
+                                    </span>
+                                )}
                                 <span className={`text-[10px] font-semibold transition-colors ${isActive ? 'text-[#FF6B35]' : 'text-gray-400'}`}>
                                     {label}
                                 </span>

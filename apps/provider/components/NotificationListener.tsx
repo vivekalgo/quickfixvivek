@@ -10,12 +10,20 @@ export default function NotificationListener({ shop }: { shop: any }) {
         if (!shop?.owner_id) return
 
         const handleNewNotification = async (notif: any) => {
-            // Web Fallback: Show a simple alert if not on mobile
             if (!Capacitor.isNativePlatform()) {
-                alert(`📣 BROADCAST: ${notif.title}\n\n${notif.message}`)
                 return
             }
             try {
+                // Ensure the channel exists for Android
+                await LocalNotifications.createChannel({
+                    id: 'quickfix-provider-alerts',
+                    name: 'New Order Alerts',
+                    importance: 5,
+                    description: 'Alerts for incoming bookings',
+                    sound: 'default',
+                    visibility: 1
+                })
+
                 await LocalNotifications.schedule({
                     notifications: [
                         {
@@ -24,9 +32,8 @@ export default function NotificationListener({ shop }: { shop: any }) {
                             id: Math.floor(Math.random() * 10000),
                             schedule: { at: new Date(Date.now() + 500) },
                             sound: 'default',
-                            attachments: [],
-                            actionTypeId: '',
-                            extra: null
+                            smallIcon: 'ic_stat_name',
+                            channelId: 'quickfix-provider-alerts'
                         }
                     ]
                 })
@@ -54,26 +61,7 @@ export default function NotificationListener({ shop }: { shop: any }) {
                 (payload) => {
                     handleNewNotification({
                         title: '🔔 New Order Received!',
-                        message: `New booking for shop. Check your incoming orders.`
-                    })
-                }
-            )
-            .subscribe()
-
-        // 3. Listen for Emergency Bookings (High Priority Alert)
-        const emergencyChannel = supabase
-            .channel('emergency_alerts')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'emergency_bookings'
-                },
-                (payload) => {
-                    handleNewNotification({
-                        title: '🚨 EMERGENCY REQUEST!',
-                        message: `New emergency: ${payload.new.problem_title}. Respond immediately!`
+                        message: `New booking for your shop. Open app to view.`
                     })
                 }
             )
@@ -81,7 +69,6 @@ export default function NotificationListener({ shop }: { shop: any }) {
 
         return () => {
             supabase.removeChannel(bookingChannel)
-            supabase.removeChannel(emergencyChannel)
         }
     }, [shop?.owner_id])
 
