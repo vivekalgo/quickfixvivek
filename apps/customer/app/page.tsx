@@ -133,8 +133,8 @@ export default function HomePage() {
 
     const filteredShops = shops.map(shop => {
         let distance = null
-        if (position && shop.latitude && shop.longitude) {
-            distance = getDistance(position[0], position[1], shop.latitude, shop.longitude)
+        if (position && shop.lat && shop.lng) {
+            distance = getDistance(position[0], position[1], shop.lat, shop.lng)
         }
         return { ...shop, distance }
     }).filter(shop => {
