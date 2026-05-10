@@ -29,19 +29,19 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Build Customer App (Next.js)
+      - name: Build Admin App (Next.js)
         run: |
-          cd apps/customer
+          cd apps/admin
           npm run build
 
-      - name: Capacitor Sync (Customer)
+      - name: Capacitor Sync (Admin)
         run: |
-          cd apps/customer
+          cd apps/admin
           npx cap sync android
 
-      - name: Build Customer APK (Gradle)
+      - name: Build Admin APK (Gradle)
         run: |
-          cd apps/customer/android
+          cd apps/admin/android
           chmod +x gradlew
           ./gradlew assembleDebug
 
@@ -61,11 +61,11 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload Customer APK
+      - name: Upload Admin APK
         uses: actions/upload-artifact@v4
         with:
-          name: QuickFix-Customer-App
-          path: apps/customer/android/app/build/outputs/apk/debug/app-debug.apk
+          name: QuickFix-Admin-App
+          path: apps/admin/android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload Provider APK
         uses: actions/upload-artifact@v4
