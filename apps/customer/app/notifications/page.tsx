@@ -120,10 +120,10 @@ export default function NotificationsPage() {
                 ) : (
                     <div className="flex flex-col gap-4">
                         {notifications.map(notif => (
-                            <div key={notif.id} className="relative group overflow-hidden rounded-[32px] shadow-sm shadow-gray-200/20">
+                            <div key={notif.id} className="relative group overflow-hidden rounded-[32px] transition-all duration-300 hover:shadow-lg active:scale-[0.98]">
                                 {/* Delete Action Background */}
-                                <div className="absolute inset-0 bg-red-500 flex items-center justify-end px-8 text-white font-black text-[10px] tracking-widest">
-                                    REMOVE
+                                <div className="absolute inset-0 bg-gradient-to-l from-red-600 to-red-400 flex items-center justify-end px-10 text-white font-black text-[10px] tracking-widest">
+                                    <span className="flex items-center gap-2">🗑️ SWIPE TO REMOVE</span>
                                 </div>
                                 
                                 {/* Notification Card */}
@@ -135,28 +135,33 @@ export default function NotificationsPage() {
                                         transform: swipingId === notif.id ? `translateX(${swipeOffset}px)` : 'none',
                                         transition: swipingId === notif.id ? 'none' : 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)'
                                     }}
-                                    className={`bg-white p-5 flex gap-4 border border-gray-100 relative z-10 active:bg-gray-50/80 transition-colors ${notif.is_read ? 'opacity-80' : ''}`}
+                                    className={`bg-white p-5 flex gap-4 border border-gray-100 relative z-10 ${notif.is_read ? 'opacity-80' : ''}`}
                                 >
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shrink-0 ${
-                                        notif.type === 'info' ? 'bg-blue-50' : 
-                                        notif.type === 'success' ? 'bg-emerald-50' :
-                                        notif.type === 'warning' ? 'bg-amber-50' : 'bg-orange-50'
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shrink-0 shadow-inner ${
+                                        notif.type === 'info' ? 'bg-indigo-50 text-indigo-500' : 
+                                        notif.type === 'success' ? 'bg-emerald-50 text-emerald-500' :
+                                        notif.type === 'warning' ? 'bg-amber-50 text-amber-500' : 'bg-orange-50 text-orange-500'
                                     }`}>
                                         {notif.type === 'info' ? '📢' : 
                                          notif.type === 'success' ? '✅' :
                                          notif.type === 'warning' ? '⚠️' : '🔔'}
                                     </div>
                                     <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                        <div className="flex items-start justify-between gap-2">
+                                        <div className="flex items-center justify-between gap-2">
                                             <p className="font-black text-[#1A1A2E] text-base truncate leading-tight">{notif.title}</p>
-                                            {!notif.is_read && <span className="w-2.5 h-2.5 bg-[#FF6B35] rounded-full shrink-0 animate-pulse mt-1.5" />}
+                                            {!notif.is_read && (
+                                                <div className="flex items-center gap-1">
+                                                    <span className="w-2 h-2 bg-[#FF6B35] rounded-full animate-ping" />
+                                                    <span className="text-[8px] font-black text-[#FF6B35] uppercase tracking-tighter">NEW</span>
+                                                </div>
+                                            )}
                                         </div>
-                                        <p className="text-gray-500 text-sm mt-0.5 leading-relaxed line-clamp-2 font-medium">{notif.message}</p>
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <span className="text-gray-300 text-[10px]">•</span>
-                                            <p className="text-gray-400 text-[10px] font-black uppercase tracking-wider">
+                                        <p className="text-gray-500 text-sm mt-1 leading-relaxed line-clamp-2 font-medium">{notif.message}</p>
+                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-50">
+                                            <p className="text-gray-400 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                                                 {notif.created_at ? new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                                                {' • '}
+                                                <span className="mx-1 text-gray-200">|</span>
                                                 {notif.created_at ? new Date(notif.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''}
                                             </p>
                                         </div>

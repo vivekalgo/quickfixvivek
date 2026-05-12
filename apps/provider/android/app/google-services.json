@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "603194116221",
+    "project_id": "quickfixvivek",
+    "storage_bucket": "quickfixvivek.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:603194116221:android:d1a3b682102c24c5f70914",
+        "android_client_info": {
+          "package_name": "com.quickfix.customer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAoIqAOF-x_DyQskJRd87g2rq19SmBV6jw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:603194116221:android:0f4a97c8586f6257f70914",
+        "android_client_info": {
+          "package_name": "com.quickfix.provider"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAoIqAOF-x_DyQskJRd87g2rq19SmBV6jw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -39,10 +39,11 @@ export default function NotificationListener({ shop }: { shop: any }) {
                 await LocalNotifications.requestPermissions()
                 await LocalNotifications.createChannel({
                     id: 'quickfix-provider-alerts',
-                    name: 'New Order Alerts',
+                    name: 'Urgent Order Alerts',
                     importance: 5,
                     description: 'Alerts for incoming bookings',
                     sound: 'default',
+                    vibration: true,
                     visibility: 1
                 })
             } catch (e) {
@@ -51,28 +52,25 @@ export default function NotificationListener({ shop }: { shop: any }) {
         }
         setupNotifications()
 
-        // 2. Listen for Normal Bookings (Instant Alert)
-        const bookingChannel = supabase
-            .channel(`shop_${shop.id}_alerts`)
+        // 2. Listen for Notifications targeted at this Owner
+        const channel = supabase
+            .channel(`shop_owner_${shop.owner_id}_alerts`)
             .on(
                 'postgres_changes',
                 {
                     event: 'INSERT',
                     schema: 'public',
-                    table: 'bookings',
-                    filter: `shop_id=eq.${shop.id}`
+                    table: 'notifications',
+                    filter: `user_id=eq.${shop.owner_id}`
                 },
                 (payload) => {
-                    handleNewNotification({
-                        title: '🔔 New Order Received!',
-                        message: `New booking for your shop. Open app to view.`
-                    })
+                    handleNewNotification(payload.new)
                 }
             )
             .subscribe()
 
         return () => {
-            supabase.removeChannel(bookingChannel)
+            supabase.removeChannel(channel)
         }
     }, [shop?.owner_id])
 
