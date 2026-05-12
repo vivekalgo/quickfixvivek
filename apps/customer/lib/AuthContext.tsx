@@ -40,8 +40,14 @@ const AuthContext = createContext<AuthContextValue>({
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<AuthUser | null>(null)
-    const [loading, setLoading] = useState(true)
+    const [user, setUser] = useState<AuthUser | null>({
+        uid: 'demo-guest-user',
+        phone: '+919876543210',
+        displayName: 'Guest User',
+        email: 'guest@quickfix.com',
+        role: 'customer'
+    })
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         if (!auth) {
