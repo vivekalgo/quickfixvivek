@@ -681,10 +681,19 @@ export default function ProviderDashboard() {
         }
     }
 
+import { useRouter } from 'next/navigation'
+import { NotificationService } from '@/services/notifications'
+
+// Inside ProviderDashboard component:
+    const router = useRouter()
+    useEffect(() => {
+        if (shop?.owner_id) {
+            NotificationService.initialize(shop.owner_id, 'provider', router)
+        }
+    }, [shop?.owner_id, router])
+
     return (
         <div className="min-h-screen flex bg-[#F4F6F9]">
-            <NotificationListener shop={shop} />
-            <PushNotificationManager shop={shop} />
             {/* Sidebar */}
             <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1A1A2E] transform transition-transform lg:translate-x-0 lg:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 {/* Logo */}

@@ -80,12 +80,25 @@ function LocationGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>
 }
 
+import { NotificationService } from '@/services/notifications'
+import { useAuth } from '@/lib/AuthContext'
+
+// ... (existing BackButtonHandler and LocationGate)
+
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth()
+    const router = useRouter()
+
+    useEffect(() => {
+        if (user) {
+            // Initialize the professional notification system
+            NotificationService.initialize(user.uid, 'customer', router)
+        }
+    }, [user, router])
+
     return (
         <AuthProvider>
             <PermissionGuard>
-                <PushNotificationManager />
-                <NotificationListener />
                 <BackButtonHandler />
                 <LocationGate>
                     {children}
