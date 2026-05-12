@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/data'
+import { useRouter } from 'next/navigation'
+import { NotificationService } from '@/services/notifications'
 import NotificationListener from '@/components/NotificationListener'
 import PushNotificationManager from '@/components/PushNotificationManager'
 
@@ -565,6 +567,7 @@ function ProviderAuth({ onLogin }: { onLogin: (shop: any) => void }) {
 // ── Main Provider Dashboard ─────────────────────────────────────────────────
 
 export default function ProviderDashboard() {
+    const router = useRouter()
     const [activeView, setActiveView] = useState<View>('dashboard')
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [shop, setShop] = useState<any>(null)
@@ -681,11 +684,6 @@ export default function ProviderDashboard() {
         }
     }
 
-import { useRouter } from 'next/navigation'
-import { NotificationService } from '@/services/notifications'
-
-// Inside ProviderDashboard component:
-    const router = useRouter()
     useEffect(() => {
         if (shop?.owner_id) {
             NotificationService.initialize(shop.owner_id, 'provider', router)
