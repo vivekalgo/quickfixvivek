@@ -3,8 +3,8 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-        "dev": "next dev --webpack -p 3004",
-        "build": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next build --webpack",
+        "dev": "next dev -p 3004",
+        "build": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next build",
         "start": "npx serve@latest -l 3004 out",
         "lint": "eslint ."
     },
@@ -14,6 +14,8 @@
         "@capacitor/geolocation": "^8.2.0",
         "@capacitor/local-notifications": "^8.1.0",
         "@capacitor/push-notifications": "^8.0.4",
+        "@capacitor/device": "^8.1.0",
+        "@capacitor/app": "^8.1.0",
         "lucide-react": "^0.378.0",
         "next": "16.2.4",
         "react": "^18",
