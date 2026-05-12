@@ -77,7 +77,7 @@ export default function AdminLocationPicker({ isOpen, onClose, onSelect }: any) 
             if (Capacitor.isNativePlatform()) {
                 // 1. Check & Request Permissions (Native)
                 const perm = await Geolocation.checkPermissions()
-                if (perm.location === 'prompt' || perm.location === 'prompt-with-description') {
+                if ((perm as any).location === 'prompt' || (perm as any).location === 'prompt-with-description') {
                     await Geolocation.requestPermissions()
                 }
 
