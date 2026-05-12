@@ -15,8 +15,8 @@ import { App } from '@capacitor/app'
 import { AuthProvider } from '@/lib/AuthContext'
 import { getSavedLocation } from '@/lib/locationPermission'
 import PermissionGuard from '@/components/PermissionGuard'
-import { NotificationService } from '@/services/notifications'
-import { useAuth } from '@/lib/AuthContext'
+import NotificationListener from '@/components/NotificationListener'
+import PushNotificationManager from '@/components/PushNotificationManager'
 
 // Routes that do NOT require a location to be set first
 const LOCATION_EXEMPT = ['/login', '/location-setup']
@@ -80,6 +80,10 @@ function LocationGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>
 }
 
+import { NotificationService } from '@/services/notifications'
+import { useAuth } from '@/lib/AuthContext'
+
+// ... (existing BackButtonHandler and LocationGate)
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
     const { user } = useAuth()

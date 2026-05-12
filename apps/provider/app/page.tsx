@@ -2,8 +2,6 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/data'
-import { useRouter } from 'next/navigation'
-import { NotificationService } from '@/services/notifications'
 import NotificationListener from '@/components/NotificationListener'
 import PushNotificationManager from '@/components/PushNotificationManager'
 
@@ -567,7 +565,6 @@ function ProviderAuth({ onLogin }: { onLogin: (shop: any) => void }) {
 // ── Main Provider Dashboard ─────────────────────────────────────────────────
 
 export default function ProviderDashboard() {
-    const router = useRouter()
     const [activeView, setActiveView] = useState<View>('dashboard')
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [shop, setShop] = useState<any>(null)
@@ -576,17 +573,7 @@ export default function ProviderDashboard() {
     const [mounted, setMounted] = useState(false)
 
     const checkAuth = async () => {
-        let savedShopId = typeof window !== 'undefined' ? localStorage.getItem('providerShopId') : null
-        
-        // If no shop logged in, try to auto-login with the first shop in DB
-        if (!savedShopId) {
-            const { data: firstShop } = await supabase.from('shops').select('id').limit(1).single()
-            if (firstShop) {
-                savedShopId = firstShop.id
-                localStorage.setItem('providerShopId', savedShopId)
-            }
-        }
-
+        const savedShopId = localStorage.getItem('providerShopId')
         if (savedShopId) {
             const { data: s, error: sError } = await supabase.from('shops').select('*, services(*)').eq('id', savedShopId).single()
             if (sError) {
@@ -694,6 +681,11 @@ export default function ProviderDashboard() {
         }
     }
 
+import { useRouter } from 'next/navigation'
+import { NotificationService } from '@/services/notifications'
+
+// Inside ProviderDashboard component:
+    const router = useRouter()
     useEffect(() => {
         if (shop?.owner_id) {
             NotificationService.initialize(shop.owner_id, 'provider', router)
