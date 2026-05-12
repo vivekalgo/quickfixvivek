@@ -10,7 +10,7 @@ const STATUS_CONFIG: Record<BookingStatus, { label: string; class: string; icon:
 }
 
 export default function StatusBadge({ status }: { status: BookingStatus }) {
-    const config = STATUS_CONFIG[status]
+    const config = STATUS_CONFIG[status] || { label: status, class: 'bg-gray-100 text-gray-500', icon: '❓' }
     return (
         <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${config.class}`}>
             {config.icon} {config.label}

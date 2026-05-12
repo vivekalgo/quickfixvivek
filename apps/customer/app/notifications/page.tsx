@@ -155,9 +155,9 @@ export default function NotificationsPage() {
                                         <div className="flex items-center gap-2 mt-2">
                                             <span className="text-gray-300 text-[10px]">•</span>
                                             <p className="text-gray-400 text-[10px] font-black uppercase tracking-wider">
-                                                {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                {notif.created_at ? new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                                                 {' • '}
-                                                {new Date(notif.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                                {notif.created_at ? new Date(notif.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''}
                                             </p>
                                         </div>
                                     </div>

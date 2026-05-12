@@ -209,7 +209,7 @@ export default function OrdersPage() {
                                         <div className="text-right">
                                             <p className="font-black text-[#FF6B35] text-lg">₹{booking.service_price || booking.servicePrice}</p>
                                             <p className={`text-[11px] font-semibold ${booking.payment_method === 'paid' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                                {booking.payment_method === 'paid' ? '✓ Paid' : '⏳ Pending'}
+                                                {booking.created_at ? new Date(booking.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (booking.time || '')} | {booking.payment_method === 'paid' ? '✓ Paid' : '⏳ Pending'}
                                             </p>
                                         </div>
                                     </div>
@@ -218,6 +218,9 @@ export default function OrdersPage() {
                                         <div className="px-4 pb-4">
                                             {cancellingId === booking.id ? (
                                                 <div className="bg-red-50 border border-red-100 rounded-xl p-3 animate-slide-up">
+                                                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">
+                                                        {booking.created_at ? new Date(booking.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : (booking.date || 'Recent')}
+                                                    </p>
                                                     <p className="text-red-700 text-xs font-bold mb-2 text-center">Are you sure you want to cancel?</p>
                                                     <div className="flex gap-2">
                                                         <button 
