@@ -22,6 +22,7 @@
     "release:check": "npm run check:all && npm run smoke:all"
   },
   "dependencies": {
+    "@capacitor/device": "^8.0.2",
     "@supabase/supabase-js": "^2.100.0"
   }
 }

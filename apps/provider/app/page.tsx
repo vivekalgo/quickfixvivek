@@ -4,6 +4,8 @@ import Image from 'next/image'
 import { supabase } from '@/lib/data'
 import NotificationListener from '@/components/NotificationListener'
 import PushNotificationManager from '@/components/PushNotificationManager'
+import { useRouter } from 'next/navigation'
+import { NotificationService } from '@/services/notifications'
 
 type View = 'dashboard' | 'services' | 'orders' | 'earnings' | 'profile'
 
@@ -680,9 +682,6 @@ export default function ProviderDashboard() {
             case 'profile': return <ShopProfileView shop={shop} setShop={setShop} />
         }
     }
-
-import { useRouter } from 'next/navigation'
-import { NotificationService } from '@/services/notifications'
 
 // Inside ProviderDashboard component:
     const router = useRouter()
