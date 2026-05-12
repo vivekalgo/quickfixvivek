@@ -62,9 +62,9 @@ export default function OrdersPage() {
                     service_price: e.emergency_charge,
                 }))
             ].sort((a, b) => {
-                const dateA = new Date(`${a.date || ''} ${a.time || ''}`).getTime()
-                const dateB = new Date(`${b.date || ''} ${b.time || ''}`).getTime()
-                return (dateB || 0) - (dateA || 0)
+                const timeA = a.created_at ? new Date(a.created_at).getTime() : new Date(`${a.date || ''} ${a.time || ''}`).getTime()
+                const timeB = b.created_at ? new Date(b.created_at).getTime() : new Date(`${b.date || ''} ${b.time || ''}`).getTime()
+                return (timeB || 0) - (timeA || 0)
             })
     
             setBookingsRaw(combined)

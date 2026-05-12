@@ -18,20 +18,41 @@ function OrderTrackContent() {
     useEffect(() => {
         if (!bookingId) return
         const fetchBooking = async () => {
-            const { data, error } = await supabase
+            // 1. Try normal bookings
+            let { data, error } = await supabase
                 .from('bookings')
                 .select('*, shops(*), services(*)')
                 .eq('id', bookingId)
                 .single()
 
-            if (data) setBooking(data)
-            setLoading(false)
+            if (data) {
+                setBooking({ ...data, isEmergency: false })
+                setLoading(false)
+            } else {
+                // 2. Try emergency bookings
+                const { data: eData } = await supabase
+                    .from('emergency_bookings')
+                    .select('*')
+                    .eq('id', bookingId)
+                    .single()
+                
+                if (eData) {
+                    setBooking({ 
+                        ...eData, 
+                        isEmergency: true,
+                        shops: { name: 'Emergency Support', phone: '+919999999999' },
+                        services: { name: eData.problem_title || 'Emergency Help' },
+                        service_price: eData.emergency_charge
+                    })
+                }
+                setLoading(false)
+            }
         }
         fetchBooking()
 
         // Real-time subscription for status updates
-        const channel = supabase
-            .channel(`booking_${bookingId}`)
+        const normalChannel = supabase
+            .channel(`booking_normal_${bookingId}`)
             .on('postgres_changes', { 
                 event: 'UPDATE', 
                 schema: 'public', 
@@ -42,8 +63,21 @@ function OrderTrackContent() {
             })
             .subscribe()
 
+        const emergencyChannel = supabase
+            .channel(`booking_emergency_${bookingId}`)
+            .on('postgres_changes', { 
+                event: 'UPDATE', 
+                schema: 'public', 
+                table: 'emergency_bookings',
+                filter: `id=eq.${bookingId}`
+            }, (payload) => {
+                setBooking((prev: any) => ({ ...prev, ...payload.new }))
+            })
+            .subscribe()
+
         return () => {
-            supabase.removeChannel(channel)
+            supabase.removeChannel(normalChannel)
+            supabase.removeChannel(emergencyChannel)
         }
     }, [bookingId])
 

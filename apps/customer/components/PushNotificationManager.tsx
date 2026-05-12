@@ -35,11 +35,12 @@ export default function PushNotificationManager() {
                 // 2. Register with FCM/APNS
                 // IMPORTANT: Native registration will crash the app if google-services.json (Android) 
                 // or GoogleService-Info.plist (iOS) is missing in the native folders.
-                // Disabling for now to prevent crashes. Re-enable after adding the files.
-                /*
-                await PushNotifications.register()
-                */
-               console.log('Push Registration skipped: Missing native config files.')
+                try {
+                    await PushNotifications.register()
+                    console.log('Push Registration attempted.')
+                } catch (regErr) {
+                    console.warn('Push Registration failed. Ensure google-services.json is present.', regErr)
+                }
 
                 // 3. Listen for token registration
                 PushNotifications.addListener('registration', async (token) => {
@@ -59,7 +60,17 @@ export default function PushNotificationManager() {
                 // 4. Handle incoming notifications while app is open
                 PushNotifications.addListener('pushNotificationReceived', (notification) => {
                     console.log('Push received:', notification)
-                    // If app is open, standard Capacitor logic shows the notification
+                })
+
+                // 5. Handle notification click actions
+                PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+                    console.log('Push action performed:', action)
+                    const data = action.notification.data
+                    if (data?.bookingId) {
+                        window.location.href = `/orders/track?id=${data.bookingId}`
+                    } else if (data?.type === 'alert') {
+                        window.location.href = '/notifications'
+                    }
                 })
 
             } catch (err) {
