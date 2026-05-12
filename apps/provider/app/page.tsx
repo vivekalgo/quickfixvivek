@@ -576,7 +576,17 @@ export default function ProviderDashboard() {
     const [mounted, setMounted] = useState(false)
 
     const checkAuth = async () => {
-        const savedShopId = localStorage.getItem('providerShopId')
+        let savedShopId = typeof window !== 'undefined' ? localStorage.getItem('providerShopId') : null
+        
+        // If no shop logged in, try to auto-login with the first shop in DB
+        if (!savedShopId) {
+            const { data: firstShop } = await supabase.from('shops').select('id').limit(1).single()
+            if (firstShop) {
+                savedShopId = firstShop.id
+                localStorage.setItem('providerShopId', savedShopId)
+            }
+        }
+
         if (savedShopId) {
             const { data: s, error: sError } = await supabase.from('shops').select('*, services(*)').eq('id', savedShopId).single()
             if (sError) {
