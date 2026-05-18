@@ -77,8 +77,27 @@ export default function AdminLocationPicker({ isOpen, onClose, onSelect }: any) 
             if (Capacitor.isNativePlatform()) {
                 // 1. Check & Request Permissions (Native)
                 const perm = await Geolocation.checkPermissions()
+                if ((perm as any).location === 'denied') {
+                    if (confirm('Location permission denied hai. QuickFix ko location allow karne ke liye phone Settings open karein?')) {
+                        const { App } = await import('@capacitor/app')
+                        const appApi = App as any
+                        if (appApi.openSettings) await appApi.openSettings()
+                    }
+                    setLoading(false)
+                    return
+                }
+
                 if ((perm as any).location === 'prompt' || (perm as any).location === 'prompt-with-description') {
-                    await Geolocation.requestPermissions()
+                    const reqResult = await Geolocation.requestPermissions()
+                    if (reqResult.location === 'denied') {
+                        if (confirm('Location permission deny kar di gayi. Settings open karein?')) {
+                            const { App } = await import('@capacitor/app')
+                            const appApi = App as any
+                            if (appApi.openSettings) await appApi.openSettings()
+                        }
+                        setLoading(false)
+                        return
+                    }
                 }
 
                 // 2. Get Position

@@ -155,8 +155,8 @@ export default function HomePage() {
 
     const filteredShops = shops.map(shop => {
         let distance = null
-        if (position && shop.lat && shop.lng) {
-            distance = getDistance(position[0], position[1], shop.lat, shop.lng)
+        if (position && shop.latitude && shop.longitude) {
+            distance = getDistance(position[0], position[1], shop.latitude, shop.longitude)
         }
         return { ...shop, distance }
     }).filter(shop => {
@@ -239,7 +239,7 @@ export default function HomePage() {
                                 <button
                                     onClick={() => { if (!user) setShowLoginPrompt(true) }}
                                     className="mt-3 bg-white text-gray-900 text-xs font-bold px-4 py-1.5 rounded-full active:scale-95 transition-transform">
-                                    Book Now
+                                    {banners[bannerIdx]?.button_text || 'Book Now'}
                                 </button>
                             </div>
                             <span className="text-6xl">{banners[bannerIdx]?.emoji}</span>

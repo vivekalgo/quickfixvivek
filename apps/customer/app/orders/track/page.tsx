@@ -40,7 +40,11 @@ function OrderTrackContent() {
                     setBooking({ 
                         ...eData, 
                         isEmergency: true,
-                        shops: { name: 'Emergency Support', phone: '+919999999999' },
+                        shops: { 
+                            name: 'Emergency Support', 
+                            phone: '+919999999999',
+                            images: ['https://images.unsplash.com/photo-1582139329536-e7284fece509?w=800'] 
+                        },
                         services: { name: eData.problem_title || 'Emergency Help' },
                         service_price: eData.emergency_charge
                     })

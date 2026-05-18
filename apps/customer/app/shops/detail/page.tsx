@@ -23,39 +23,77 @@ function ShopDetailContent() {
         date: '',
         time: '',
         address: '',
+        lat: null as number | null,
+        lng: null as number | null,
         description: '',
         paymentMethod: 'cash' as 'cash' | 'upi'
     })
+    const [userAddresses, setUserAddresses] = useState<any[]>([])
     const [isBooking, setIsBooking] = useState(false)
 
     useEffect(() => {
-        if (!shopId) return
-        const load = async () => {
-            const { data: catData } = await supabase.from('categories').select('*')
-            if (catData) setCategories(catData)
-
-            const { data, error } = await supabase
-                .from('shops')
-                .select('*, services(*)')
-                .eq('id', shopId)
-                .single()
-
-            if (data) setShop(data)
+        if (!shopId) {
             setLoading(false)
+            return
+        }
+        const load = async () => {
+            try {
+                const { data: catData } = await supabase.from('categories').select('*')
+                if (catData) setCategories(catData)
+
+                const { data, error } = await supabase
+                    .from('shops')
+                    .select('*, services(*)')
+                    .eq('id', shopId)
+                    .single()
+
+                if (data) setShop(data)
+            } catch (err) {
+                console.error('Error loading shop details:', err)
+            } finally {
+                setLoading(false)
+            }
+            
+            // Fetch saved addresses if user is logged in
+            if (user) {
+                const { data: addrs } = await supabase
+                    .from('user_addresses')
+                    .select('*')
+                    .eq('user_id', user.uid)
+                    .order('is_default', { ascending: false })
+                if (addrs) setUserAddresses(addrs)
+            }
         }
         load()
     }, [shopId])
 
     const handleBook = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!user || !bookingService || !shop) return
+        
+        if (!user) {
+            router.push(`/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+            return
+        }
+        
+        if (!bookingService || !shop) {
+            alert('Missing service or shop information. Please refresh and try again.')
+            return
+        }
 
         setIsBooking(true)
         try {
-            const savedLoc = getSavedLocation()
-            const bookingId = 'b' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)
-            const { data, error } = await supabase.from('bookings').insert({
-                id: bookingId,
+            // DIAGNOSTIC LOGGING (Task 9)
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://oatjkxhymqijjhvoryfx.supabase.co'
+            console.log("--- BOOKING DIAGNOSTICS ---")
+            console.log("Supabase URL:", supabaseUrl)
+            console.log("User UID:", user?.uid)
+
+            // Get coordinates from form or fallback to saved location
+            const loc = getSavedLocation()
+            const lat = bookingForm.lat ?? (loc?.coords ? loc.coords[0] : null)
+            const lng = bookingForm.lng ?? (loc?.coords ? loc.coords[1] : null)
+
+            const payload = {
                 user_id: user.uid,
                 shop_id: shop.id,
                 service_id: bookingService.id,
@@ -64,27 +102,41 @@ function ShopDetailContent() {
                 time: bookingForm.time,
                 address: bookingForm.address,
                 description: bookingForm.description,
+                service_price: Number(bookingService.price),
                 payment_method: bookingForm.paymentMethod,
-                service_price: bookingService.price,
-                latitude: savedLoc?.coords?.[0] || null,
-                longitude: savedLoc?.coords?.[1] || null
-            }).select().single()
-
-            if (error) throw error
-
-            // Notify Provider
-            if (shop.owner_id) {
-                await supabase.from('notifications').insert({
-                    user_id: shop.owner_id,
-                    title: 'New Order Received! 📦',
-                    message: `New booking for ${bookingService.name} from ${user.displayName || 'a customer'}.`,
-                    type: 'success'
-                })
+                latitude: lat,
+                longitude: lng,
+                created_at: new Date().toISOString()
             }
+            
+            console.log('Booking Payload:', JSON.stringify(payload, null, 2))
+
+            // 1. Perform the insert
+            const { data, error } = await supabase.from('bookings').insert(payload).select('id').single()
+
+            if (error) {
+                console.error('SUPABASE ERROR:', error)
+                // Specific hint for libcurl protocol errors (Task 12/14)
+                if (error.message?.includes('libcurl') || error.code === 'XX000') {
+                    throw new Error(`Database Protocol Error (libcurl). This is likely a server-side webhook issue. Message: ${error.message}`)
+                }
+                throw new Error(error.message)
+            }
+
+            console.log('Booking Success, ID:', data.id)
+
+            // Send notification to the Provider (Shop Owner)
+            await supabase.from('notifications').insert({
+                user_id: shop.owner_id,
+                title: 'New Service Request',
+                message: `You have a new booking from ${user?.displayName || 'a customer'} for ${bookingService.name}.`,
+                created_at: new Date().toISOString()
+            })
 
             router.push(`/orders/track?id=${data.id}`)
         } catch (err: any) {
-            alert('Booking failed: ' + err.message)
+            console.error('FULL ERROR:', err)
+            alert(`Booking failed: ${err.message || 'Unknown network error'}`)
             setIsBooking(false)
         }
     }
@@ -241,13 +293,34 @@ function ShopDetailContent() {
 
                             <div className="space-y-1.5">
                                 <label className="text-[11px] font-black text-gray-400 uppercase tracking-wider">Service Address</label>
+                                
+                                {/* Quick Select Saved Addresses */}
+                                {userAddresses.length > 0 && (
+                                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                        {userAddresses.map(addr => (
+                                            <button
+                                                key={addr.id}
+                                                type="button"
+                                                onClick={() => setBookingForm(f => ({ ...f, address: addr.full_address, lat: addr.latitude, lng: addr.longitude }))}
+                                                className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
+                                                    bookingForm.address === addr.full_address 
+                                                    ? 'bg-[#FF6B35] text-white border-[#FF6B35]' 
+                                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-orange-50'
+                                                }`}
+                                            >
+                                                {addr.type === 'Home' ? '🏠' : addr.type === 'Office' ? '🏢' : '📍'} {addr.type}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
                                 <textarea 
                                     required 
                                     rows={2}
                                     placeholder="Enter full address for doorstep service..."
                                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-[#FF6B35] font-bold text-sm resize-none"
                                     value={bookingForm.address}
-                                    onChange={e => setBookingForm(f => ({ ...f, address: e.target.value }))}
+                                    onChange={e => setBookingForm(f => ({ ...f, address: e.target.value, lat: null, lng: null }))}
                                 />
                             </div>
 
@@ -264,20 +337,18 @@ function ShopDetailContent() {
                             <div className="space-y-1.5">
                                 <label className="text-[11px] font-black text-gray-400 uppercase tracking-wider">Payment Method</label>
                                 <div className="flex gap-3">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setBookingForm(f => ({ ...f, paymentMethod: 'cash' }))}
-                                        className={`flex-1 py-3 rounded-xl border-2 font-bold text-xs transition-all ${bookingForm.paymentMethod === 'cash' ? 'border-[#FF6B35] bg-orange-50 text-[#FF6B35]' : 'border-gray-100 text-gray-500'}`}
-                                    >
-                                        💵 Cash after Service
-                                    </button>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setBookingForm(f => ({ ...f, paymentMethod: 'upi' }))}
-                                        className={`flex-1 py-3 rounded-xl border-2 font-bold text-xs transition-all ${bookingForm.paymentMethod === 'upi' ? 'border-[#FF6B35] bg-orange-50 text-[#FF6B35]' : 'border-gray-100 text-gray-500'}`}
-                                    >
-                                        📲 Pay via UPI
-                                    </button>
+                                    <div className="flex-1 py-4 px-4 rounded-2xl border-2 border-[#FF6B35] bg-orange-50 flex items-center justify-between shadow-sm shadow-orange-500/5">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xl">💵</span>
+                                            <div>
+                                                <p className="font-black text-[#1A1A2E] text-sm leading-none">Cash Payment</p>
+                                                <p className="text-[9px] font-bold text-[#FF6B35] uppercase tracking-widest mt-1">Pay after service</p>
+                                            </div>
+                                        </div>
+                                        <div className="w-5 h-5 rounded-full bg-[#FF6B35] flex items-center justify-center">
+                                            <svg width="10" height="10" fill="white" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

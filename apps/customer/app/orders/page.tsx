@@ -58,6 +58,7 @@ export default function OrdersPage() {
                     ...e,
                     isEmergency: true,
                     shopName: 'Emergency Support',
+                    shopImage: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?w=800', // Siren/Emergency light image
                     serviceName: e.problem_title || 'Emergency Service',
                     service_price: e.emergency_charge,
                 }))
@@ -208,8 +209,8 @@ export default function OrdersPage() {
                                         </div>
                                         <div className="text-right">
                                             <p className="font-black text-[#FF6B35] text-lg">₹{booking.service_price || booking.servicePrice}</p>
-                                            <p className={`text-[11px] font-semibold ${booking.payment_method === 'paid' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                                {booking.created_at ? new Date(booking.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (booking.time || '')} | {booking.payment_method === 'paid' ? '✓ Paid' : '⏳ Pending'}
+                                            <p className="text-[11px] font-semibold text-amber-600">
+                                                {booking.created_at ? new Date(booking.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (booking.time || '')} | 💵 Cash on Service
                                             </p>
                                         </div>
                                     </div>

@@ -101,14 +101,33 @@ function DashboardView({ shop, shopBookings }: any) {
 }
 
 function ServicesView({ shop }: any) {
-    const [services, setServices] = useState(shop.services || [])
-    const [showAdd, setShowAdd] = useState(false)
+    const [services, setServices] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [showForm, setShowForm] = useState(false)
+    const [editId, setEditId] = useState<string | null>(null)
     const [form, setForm] = useState({ name: '', description: '', price: '', duration: '' })
 
-    const handleAdd = async () => {
-        if (!form.name || !form.price) return
-        const newSv = {
-            id: `sv${Date.now()}`,
+    const fetchServices = async () => {
+        setLoading(true)
+        const { data, error } = await supabase
+            .from('services')
+            .select('*')
+            .eq('shop_id', shop.id)
+        if (data) setServices(data)
+        setLoading(false)
+    }
+
+    useEffect(() => {
+        fetchServices()
+    }, [shop.id])
+
+    const handleSave = async () => {
+        if (!form.name || !form.price) {
+            alert('Please fill name and price')
+            return
+        }
+
+        const serviceData = {
             shop_id: shop.id,
             name: form.name,
             description: form.description,
@@ -116,61 +135,131 @@ function ServicesView({ shop }: any) {
             duration: form.duration,
             category: shop.category?.[0] || 'other'
         }
-        await supabase.from('services').insert(newSv)
-        setServices((prev:any) => [...prev, newSv])
+
+        if (editId) {
+            // Update existing service
+            const { error } = await supabase
+                .from('services')
+                .update(serviceData)
+                .eq('id', editId)
+            
+            if (error) {
+                alert('Update failed: ' + error.message)
+                return
+            }
+        } else {
+            // Create new service
+            const newId = `sv${Date.now()}`
+            const { error } = await supabase
+                .from('services')
+                .insert({ ...serviceData, id: newId })
+            
+            if (error) {
+                alert('Insert failed: ' + error.message)
+                return
+            }
+        }
+
         setForm({ name: '', description: '', price: '', duration: '' })
-        setShowAdd(false)
+        setEditId(null)
+        setShowForm(false)
+        fetchServices() // Refresh the list from source
+    }
+
+    const handleEdit = (sv: any) => {
+        setForm({
+            name: sv.name,
+            description: sv.description || '',
+            price: sv.price.toString(),
+            duration: sv.duration || ''
+        })
+        setEditId(sv.id)
+        setShowForm(true)
     }
 
     const deleteService = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this service?')) return
         await supabase.from('services').delete().eq('id', id)
-        setServices((prev:any) => prev.filter((s:any) => s.id !== id))
+        setServices((prev: any) => prev.filter((s: any) => s.id !== id))
     }
 
     return (
         <div className="animate-fade-in">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-black text-[#1A1A2E]">Manage Services</h2>
-                <button onClick={() => setShowAdd(true)} className="bg-[#FF6B35] text-white px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-2">
-                    + Add Service
-                </button>
+                {!showForm && (
+                    <button onClick={() => { setShowForm(true); setEditId(null); setForm({ name: '', description: '', price: '', duration: '' }) }} 
+                            className="bg-[#FF6B35] text-white px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-lg shadow-orange-200 active:scale-95 transition-all">
+                        + Add Service
+                    </button>
+                )}
             </div>
 
-            {showAdd && (
-                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 mb-5">
-                    <h3 className="font-bold text-[#1A1A2E] mb-4">Add New Service</h3>
-                    <div className="grid grid-cols-2 gap-3 mb-3">
-                        <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Service name *" className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#FF6B35] col-span-2" />
-                        <input value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="Price (₹) *" type="number" className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#FF6B35]" />
-                        <input value={form.duration} onChange={e => setForm(f => ({ ...f, duration: e.target.value }))} placeholder="Duration (e.g. 1 hour)" className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#FF6B35]" />
-                        <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Description" className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#FF6B35] col-span-2" />
+            {showForm && (
+                <div className="bg-white border border-orange-100 rounded-2xl p-6 mb-6 shadow-sm">
+                    <h3 className="font-bold text-[#1A1A2E] mb-4 text-lg">{editId ? '📝 Edit Service' : '✨ Add New Service'}</h3>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="col-span-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-1 mb-1 block">Service Name *</label>
+                            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Screen Replacement" className="w-full border border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#FF6B35] transition-all" />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-1 mb-1 block">Price (₹) *</label>
+                            <input value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="0.00" type="number" className="w-full border border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#FF6B35] transition-all" />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-1 mb-1 block">Duration</label>
+                            <input value={form.duration} onChange={e => setForm(f => ({ ...f, duration: e.target.value }))} placeholder="e.g. 1 hour" className="w-full border border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#FF6B35] transition-all" />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-1 mb-1 block">Description</label>
+                            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What is included in this service?" rows={2} className="w-full border border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#FF6B35] transition-all resize-none" />
+                        </div>
                     </div>
-                    <div className="flex gap-2">
-                        <button onClick={handleAdd} className="flex-1 bg-[#FF6B35] text-white py-2.5 rounded-xl font-bold text-sm">Add Service</button>
-                        <button onClick={() => setShowAdd(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl font-semibold text-sm">Cancel</button>
+                    <div className="flex gap-3">
+                        <button onClick={handleSave} className="flex-1 bg-[#FF6B35] text-white py-3 rounded-xl font-black text-sm shadow-lg shadow-orange-100 active:scale-[0.98] transition-all">
+                            {editId ? 'Update Service' : 'Create Service'}
+                        </button>
+                        <button onClick={() => { setShowForm(false); setEditId(null); }} className="flex-1 bg-gray-100 text-[#1A1A2E] py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors">Cancel</button>
                     </div>
                 </div>
             )}
 
-            <div className="flex flex-col gap-3">
-                {services.map((sv:any) => (
-                    <div key={sv.id} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
-                        <div className="flex-1">
-                            <p className="font-bold text-[#1A1A2E]">{sv.name}</p>
-                            <p className="text-gray-400 text-sm mt-0.5">{sv.description}</p>
-                            <p className="text-gray-400 text-xs mt-1">⏱ {sv.duration}</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                            <p className="font-black text-[#FF6B35] text-xl">₹{sv.price}</p>
-                            <div className="flex gap-2 mt-2">
-                                <button className="text-xs border border-gray-200 px-3 py-1 rounded-lg text-gray-600 hover:bg-gray-50">Edit</button>
-                                <button onClick={() => deleteService(sv.id)}
-                                    className="text-xs border border-red-200 px-3 py-1 rounded-lg text-red-500 hover:bg-red-50">Delete</button>
+            {loading ? (
+                <div className="p-12 text-center">
+                    <div className="w-8 h-8 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-400 font-bold animate-pulse">Loading services...</p>
+                </div>
+            ) : services.length === 0 ? (
+                <div className="bg-white rounded-3xl p-16 text-center border-2 border-dashed border-gray-100">
+                    <span className="text-6xl mb-4 block">🔧</span>
+                    <p className="text-[#1A1A2E] font-black text-xl">No services found</p>
+                    <p className="text-gray-400 text-sm mt-1">Start by adding your first service to your shop.</p>
+                </div>
+            ) : (
+                <div className="flex flex-col gap-4">
+                    {services.map((sv: any) => (
+                        <div key={sv.id} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+                            <div className="flex-1">
+                                <p className="font-black text-[#1A1A2E] text-lg">{sv.name}</p>
+                                {sv.description && <p className="text-gray-500 text-sm mt-0.5">{sv.description}</p>}
+                                <div className="flex items-center gap-3 mt-2">
+                                    <span className="text-gray-400 text-xs font-bold flex items-center gap-1">⏱ {sv.duration || 'N/A'}</span>
+                                    <span className="text-gray-200">•</span>
+                                    <span className="bg-orange-50 text-[#FF6B35] text-[10px] font-black uppercase px-2 py-0.5 rounded-md">{sv.category}</span>
+                                </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                                <p className="font-black text-[#FF6B35] text-2xl">₹{sv.price}</p>
+                                <div className="flex gap-2 mt-3">
+                                    <button onClick={() => handleEdit(sv)} className="text-[11px] font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">Edit</button>
+                                    <button onClick={() => deleteService(sv.id)} className="text-[11px] font-bold bg-red-50 text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors">Delete</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     )
 }
@@ -182,9 +271,31 @@ function OrdersView({ shopBookings, refresh }: any) {
         setOrders(shopBookings)
     }, [shopBookings])
 
-    const updateStatus = async (id: string, status: string) => {
-        await supabase.from('bookings').update({ status }).eq('id', id)
-        setOrders((prev:any) => prev.map((o:any) => o.id === id ? { ...o, status } : o))
+    const updateStatus = async (order: any, status: string) => {
+        const { error } = await supabase.from('bookings').update({ status }).eq('id', order.id);
+        
+        if (error) {
+            console.error('Update Error:', error);
+            alert('Failed to update status: ' + error.message);
+            return;
+        }
+
+        // Send a notification record to the customer (Task: restore alerts)
+        // This will be picked up by the Customer app's real-time listener
+        const { error: notifError } = await supabase.from('notifications').insert({
+            user_id: order.user_id,
+            title: 'Order Updated',
+            message: `Your booking for ${order.services?.name || 'service'} has been ${status}.`,
+            created_at: new Date().toISOString()
+        })
+
+        if (notifError) {
+            console.error('Notification Insert Error:', notifError);
+            alert('Status updated, but failed to send alert to customer: ' + notifError.message);
+        }
+
+        setOrders((prev:any) => prev.map((o:any) => o.id === order.id ? { ...o, status } : o));
+        alert(`Order ${status} successfully!`);
     }
 
     return (
@@ -247,15 +358,15 @@ function OrdersView({ shopBookings, refresh }: any) {
 
                                 {order.status === 'requested' && (
                                     <div className="flex gap-2 mt-4">
-                                        <button onClick={() => updateStatus(order.id, 'accepted')} className="flex-1 bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-sm">✅ Accept</button>
-                                        <button onClick={() => updateStatus(order.id, 'cancelled')} className="flex-1 bg-red-50 border border-red-200 text-red-600 py-2.5 rounded-xl font-bold text-sm">❌ Decline</button>
+                                        <button onClick={() => updateStatus(order, 'accepted')} className="flex-1 bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-sm">✅ Accept</button>
+                                        <button onClick={() => updateStatus(order, 'cancelled')} className="flex-1 bg-red-50 border border-red-200 text-red-600 py-2.5 rounded-xl font-bold text-sm">❌ Decline</button>
                                     </div>
                                 )}
                                 {order.status === 'accepted' && (
-                                    <button onClick={() => updateStatus(order.id, 'on-the-way')} className="w-full mt-4 bg-purple-500 text-white py-2.5 rounded-xl font-bold text-sm">🚗 Mark On the Way</button>
+                                    <button onClick={() => updateStatus(order, 'on-the-way')} className="w-full mt-4 bg-purple-500 text-white py-2.5 rounded-xl font-bold text-sm">🚗 Mark On the Way</button>
                                 )}
                                 {order.status === 'on-the-way' && (
-                                    <button onClick={() => updateStatus(order.id, 'completed')} className="w-full mt-4 bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-sm">✅ Mark Completed</button>
+                                    <button onClick={() => updateStatus(order, 'completed')} className="w-full mt-4 bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-sm">✅ Mark Completed</button>
                                 )}
                             </div>
                         </div>
@@ -573,24 +684,36 @@ export default function ProviderDashboard() {
     const [shopBookings, setShopBookings] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [mounted, setMounted] = useState(false)
+    const router = useRouter()
+
+    useEffect(() => {
+        if (shop?.owner_id) {
+            NotificationService.initialize(shop.owner_id, 'provider', router)
+        }
+    }, [shop?.owner_id, router])
 
     const checkAuth = async () => {
-        const savedShopId = localStorage.getItem('providerShopId')
-        if (savedShopId) {
-            const { data: s, error: sError } = await supabase.from('shops').select('*, services(*)').eq('id', savedShopId).single()
-            if (sError) {
-                console.error('Shop Fetch Error:', sError)
-                if (sError.code === 'PGRST116') localStorage.removeItem('providerShopId')
+        try {
+            const savedShopId = localStorage.getItem('providerShopId')
+            if (savedShopId) {
+                const { data: s, error: sError } = await supabase.from('shops').select('*, services(*)').eq('id', savedShopId).single()
+                if (sError) {
+                    console.error('Shop Fetch Error:', sError)
+                    if (sError.code === 'PGRST116') localStorage.removeItem('providerShopId')
+                }
+                
+                if (s) {
+                    setShop(s)
+                    const { data: b, error: bError } = await supabase.from('bookings').select('*, users(name, phone), services(name)').eq('shop_id', s.id)
+                    if (bError) console.error('Bookings Fetch Error:', bError)
+                    if (b) setShopBookings(b)
+                }
             }
-            
-            if (s) {
-                setShop(s)
-                const { data: b, error: bError } = await supabase.from('bookings').select('*, users(name, phone), services(name)').eq('shop_id', s.id)
-                if (bError) console.error('Bookings Fetch Error:', bError)
-                if (b) setShopBookings(b)
-            }
+        } catch (err) {
+            console.error('Auth Check Critical Error:', err)
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     useEffect(() => {
@@ -683,13 +806,6 @@ export default function ProviderDashboard() {
         }
     }
 
-// Inside ProviderDashboard component:
-    const router = useRouter()
-    useEffect(() => {
-        if (shop?.owner_id) {
-            NotificationService.initialize(shop.owner_id, 'provider', router)
-        }
-    }, [shop?.owner_id, router])
 
     return (
         <div className="min-h-screen flex bg-[#F4F6F9]">
@@ -746,6 +862,9 @@ export default function ProviderDashboard() {
 
             {/* Overlay */}
             {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+            
+            <NotificationListener shop={shop} />
+            <PushNotificationManager shop={shop} />
 
             {/* Main content */}
             <div className="flex-1 flex flex-col min-w-0">

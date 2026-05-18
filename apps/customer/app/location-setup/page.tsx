@@ -17,6 +17,8 @@ import {
     openAppSettings,
     isNativePlatform,
 } from '@/lib/locationPermission'
+import { useAuth } from '@/lib/AuthContext'
+import { supabase } from '@/lib/data'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type Phase =
@@ -32,6 +34,7 @@ function LocationSetupInner() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const returnTo = searchParams.get('returnTo') || '/'
+    const { user } = useAuth()
 
     const [phase, setPhase] = useState<Phase>('idle')
     const [manualInput, setManualInput] = useState('')
@@ -60,12 +63,18 @@ function LocationSetupInner() {
         if (isNativePlatform()) {
             const perm = await checkLocationPermission()
             if (perm === 'denied') {
+                if (confirm('Location permission denied hai. QuickFix ko location allow karne ke liye phone Settings open karein?')) {
+                    await openAppSettings()
+                }
                 setPhase('denied')
                 return
             }
             if (perm === 'prompt') {
                 const after = await requestLocationPermission()
                 if (after !== 'granted') {
+                    if (confirm('Permission allow nahi ki gayi. Kya aap app permission settings open karna chahte hain?')) {
+                        await openAppSettings()
+                    }
                     setPhase('denied')
                     return
                 }
@@ -95,6 +104,17 @@ function LocationSetupInner() {
         setDetectedLabel(label)
         saveLocation(label, result.coords)
 
+        if (returnTo.includes('/profile/addresses') && user) {
+            await supabase.from('user_addresses').insert({
+                user_id: user.uid,
+                type: 'Other',
+                full_address: label,
+                latitude: result.coords[0],
+                longitude: result.coords[1],
+                is_default: false
+            })
+        }
+
         // Small delay so user sees the detected location
         await new Promise(r => setTimeout(r, 700))
         router.replace(returnTo)
@@ -114,10 +134,20 @@ function LocationSetupInner() {
     }, [])
 
     // ── Manual entry confirm ──────────────────────────────────────────────────
-    const handleManualConfirm = () => {
+    const handleManualConfirm = async () => {
         const trimmed = manualInput.trim()
         if (trimmed.length < 3) return
         saveLocation(trimmed)
+        
+        if (returnTo.includes('/profile/addresses') && user) {
+            await supabase.from('user_addresses').insert({
+                user_id: user.uid,
+                type: 'Other',
+                full_address: trimmed,
+                is_default: false
+            })
+        }
+        
         router.replace(returnTo)
     }
 

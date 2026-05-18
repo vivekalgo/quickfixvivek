@@ -85,7 +85,7 @@ import { useAuth } from '@/lib/AuthContext'
 
 // ... (existing BackButtonHandler and LocationGate)
 
-export default function ClientProviders({ children }: { children: React.ReactNode }) {
+function NotificationInitializer() {
     const { user } = useAuth()
     const router = useRouter()
 
@@ -97,9 +97,19 @@ export default function ClientProviders({ children }: { children: React.ReactNod
     }, [user, router])
 
     return (
+        <>
+            <NotificationListener />
+            <PushNotificationManager />
+        </>
+    )
+}
+
+export default function ClientProviders({ children }: { children: React.ReactNode }) {
+    return (
         <AuthProvider>
             <PermissionGuard>
                 <BackButtonHandler />
+                <NotificationInitializer />
                 <LocationGate>
                     {children}
                 </LocationGate>

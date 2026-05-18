@@ -14,8 +14,9 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
     const [suggestions, setSuggestions] = useState<any[]>([])
     // Default Bangalore
     const [position, setPosition] = useState<[number, number]>([12.9716, 77.5946])
-    const [addressText, setAddressText] = useState(initialLocation || 'Fetching location...')
+    const [addressText, setAddressText] = useState(initialLocation || '')
     const [loading, setLoading] = useState(false)
+    const [hasInteracted, setHasInteracted] = useState(false)
     const [mapRenderKey, setMapRenderKey] = useState(0)
     const [showMap, setShowMap] = useState(false)
     const typingTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -24,10 +25,14 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
         if (isOpen) {
             setMapRenderKey(prev => prev + 1)
             setShowMap(true)
+            // If we have an initial location, we count that as an interaction so it shows up
+            if (initialLocation && initialLocation !== 'Detecting…') {
+                setHasInteracted(true)
+            }
         } else {
             setShowMap(false)
         }
-    }, [isOpen])
+    }, [isOpen, initialLocation])
 
     useEffect(() => {
         return () => {
@@ -38,6 +43,8 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
     // Reverse Geocode when position changes from Map click or Current Location
     useEffect(() => {
         const fetchAddress = async () => {
+            if (!hasInteracted) return // Don't fetch for the default position on mount
+
             setLoading(true)
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position[0]}&lon=${position[1]}`)
@@ -49,9 +56,8 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
             setLoading(false)
         }
         
-        // Prevent initial fetch if we haven't clicked/moved yet to optimize (but we want it if they use "Current Location")
         fetchAddress()
-    }, [position])
+    }, [position, hasInteracted])
 
     // Forward Geocode for Search
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,6 +79,7 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
     }
 
     const selectSuggestion = (s: any) => {
+        setHasInteracted(true)
         setPosition([parseFloat(s.lat), parseFloat(s.lon)])
         setQuery('')
         setSuggestions([])
@@ -89,6 +96,7 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
 
             const current = await fetchCurrentDevicePosition()
             if (current) {
+                setHasInteracted(true)
                 setPosition(current)
                 return
             }
@@ -138,7 +146,10 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
                             <MapPopup
                                 key={mapRenderKey}
                                 position={position}
-                                setPosition={setPosition}
+                                setPosition={(p) => {
+                                    setHasInteracted(true)
+                                    setPosition(p)
+                                }}
                             />
                         )}
                         <div className="absolute top-3 left-3 right-3 bg-white/90 backdrop-blur px-3 py-2 rounded-xl text-[10px] font-bold text-gray-500 shadow-sm pointer-events-none z-[1000] text-center border border-white/50">
@@ -146,10 +157,12 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
                         </div>
                     </div>
 
-                    <div className="bg-orange-50 rounded-2xl p-4 border border-orange-100 shrink-0">
-                        <p className="text-xs font-bold text-orange-800 mb-1">Selected Location:</p>
-                        <p className="text-sm font-semibold text-[#1A1A2E] leading-snug">{loading ? 'Fetching precise address...' : addressText}</p>
-                    </div>
+                    {addressText && addressText !== 'Fetching location...' && addressText !== 'Detecting…' && (
+                        <div className="bg-orange-50 rounded-2xl p-4 border border-orange-100 shrink-0">
+                            <p className="text-xs font-bold text-orange-800 mb-1">Selected Location:</p>
+                            <p className="text-sm font-semibold text-[#1A1A2E] leading-snug">{loading ? 'Fetching precise address...' : addressText}</p>
+                        </div>
+                    )}
 
                 </div>
 

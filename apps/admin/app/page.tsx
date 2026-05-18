@@ -141,9 +141,9 @@ function ShopsView({ shops: initialShops, categories }: any) {
     const [password, setPassword] = useState('')
     const [ownerName, setOwnerName] = useState('')
     const [shopName, setShopName] = useState('')
-    const [category, setCategory] = useState(categories[0]?.id || 'mobile-repair')
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([])
     const [address, setAddress] = useState('')
-    const [city, setCity] = useState('Bangalore')
+    const [city, setCity] = useState('')
     
     // Map Location states
     const [latitude, setLatitude] = useState(0)
@@ -164,6 +164,7 @@ function ShopsView({ shops: initialShops, categories }: any) {
 
     const handleAddShop = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (selectedCategories.length === 0) return setError('Please select at least one category.')
         if (!latitude || !longitude) return setError('Please drop a PIN on the map for the shop location.')
         
         setLoading(true)
@@ -173,7 +174,7 @@ function ShopsView({ shops: initialShops, categories }: any) {
         let { data: user, error: fetchErr } = await supabase.from('users').select('*').eq('phone', phone).maybeSingle()
         
         if (!user) {
-            // Create a new provider user (no manual ID — let DB auto-assign or use a safe unique ID)
+            // Create a new provider user
             const newUser = {
                 id: `p${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
                 name: ownerName,
@@ -183,14 +184,13 @@ function ShopsView({ shops: initialShops, categories }: any) {
             }
             const { data: created, error: uErr } = await supabase.from('users').insert(newUser).select().single()
             if (uErr) {
-                // Show the actual database error so we can debug it
                 setError(`Failed to create user: ${uErr.message}`)
                 setLoading(false)
                 return
             }
             user = created
         } else {
-            // User already exists — just update their password for the provider login
+            // User already exists — update credentials
             const { error: pErr } = await supabase.from('users').update({ name: ownerName, password, role: 'provider' }).eq('id', user.id)
             if (pErr) console.error('Failed to update existing user:', pErr)
         }
@@ -199,7 +199,7 @@ function ShopsView({ shops: initialShops, categories }: any) {
             id: `s${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
             owner_id: user!.id,
             name: shopName,
-            category: [category],
+            category: selectedCategories,
             city,
             address,
             phone,
@@ -222,7 +222,7 @@ function ShopsView({ shops: initialShops, categories }: any) {
         setLoading(false)
         
         // Reset form
-        setPhone(''); setPassword(''); setOwnerName(''); setShopName(''); setAddress(''); setLatitude(0); setLongitude(0);
+        setPhone(''); setPassword(''); setOwnerName(''); setShopName(''); setAddress(''); setLatitude(0); setLongitude(0); setCity(''); setSelectedCategories([]);
     }
 
     return (
@@ -249,14 +249,37 @@ function ShopsView({ shops: initialShops, categories }: any) {
                                 <input type="text" required placeholder="Set Password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-[#FF6B35] font-semibold text-sm" />
                             </div>
                             <input type="text" required placeholder="Shop Name" value={shopName} onChange={e => setShopName(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-[#FF6B35] font-semibold text-sm" />
-                            <div className="flex gap-3">
-                                <select value={category} onChange={e => setCategory(e.target.value)} className="flex-1 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-[#FF6B35] font-semibold text-sm">
-                                    {categories.map((cat: any) => (
-                                        <option key={cat.id} value={cat.id}>{cat.label}</option>
-                                    ))}
-                                </select>
-                                <input type="text" required placeholder="City" value={city} onChange={e => setCity(e.target.value)} className="flex-1 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-[#FF6B35] font-semibold text-sm" />
+                            
+                            <div className="border border-gray-200 rounded-xl p-3.5 flex flex-col gap-2 font-semibold text-sm w-full bg-white">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Select Categories (Select Multiple)</span>
+                                <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto pr-1">
+                                    {categories.map((cat: any) => {
+                                        const isSelected = selectedCategories.includes(cat.id);
+                                        return (
+                                            <button
+                                                key={cat.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setSelectedCategories(selectedCategories.filter(c => c !== cat.id));
+                                                    } else {
+                                                        setSelectedCategories([...selectedCategories, cat.id]);
+                                                    }
+                                                }}
+                                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                                                    isSelected 
+                                                        ? 'bg-[#FF6B35] text-white border-transparent shadow-sm' 
+                                                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                                                }`}
+                                            >
+                                                {cat.label}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
                             </div>
+                            
+                            <input type="text" required placeholder="City" value={city} onChange={e => setCity(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-[#FF6B35] font-semibold text-sm" />
                             <input type="text" required placeholder="Full Address" value={address} onChange={e => setAddress(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-[#FF6B35] font-semibold text-sm" />
                             
                             <button type="button" onClick={() => setIsMapOpen(true)} className={`w-full border rounded-xl px-4 py-3 outline-none font-semibold text-sm flex items-center justify-between transition-colors ${latitude ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-500 hover:border-[#FF6B35]'}`}>
@@ -818,6 +841,7 @@ function EmergencyManager() {
     const [services, setServices] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [showServiceEditor, setShowServiceEditor] = useState(false)
+    const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
     const [newService, setNewService] = useState({ name: '', icon: '🚑', charge: 500, estimated_time: '20 mins', description: '' })
 
     useEffect(() => {
@@ -844,18 +868,39 @@ function EmergencyManager() {
         setLoading(false)
     }
 
-    const handleAddService = async () => {
+    const handleSaveService = async () => {
         if (!newService.name || !newService.charge) {
             alert('Please fill at least name and charge')
             return
         }
-        const { error } = await supabase.from('emergency_services').insert(newService)
+        
+        let error;
+        if (editingServiceId) {
+            const { error: updateError } = await supabase.from('emergency_services').update(newService).eq('id', editingServiceId)
+            error = updateError;
+        } else {
+            const { error: insertError } = await supabase.from('emergency_services').insert({ ...newService, is_active: true })
+            error = insertError;
+        }
+
         if (error) {
-            console.error('Error adding emergency service:', error)
-            alert('Failed to add service: ' + error.message)
+            console.error('Error saving emergency service:', JSON.stringify(error, null, 2))
+            alert('Failed to save service: ' + (error.message || JSON.stringify(error)))
         } else {
             setShowServiceEditor(false)
+            setEditingServiceId(null)
             setNewService({ name: '', icon: '🚑', charge: 500, estimated_time: '20 mins', description: '' })
+            fetchEmergencyData()
+        }
+    }
+
+    const handleDeleteService = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this emergency service?')) return
+        const { error } = await supabase.from('emergency_services').delete().eq('id', id)
+        if (error) {
+            console.error('Error deleting emergency service:', JSON.stringify(error, null, 2))
+            alert('Failed to delete service: ' + (error.message || JSON.stringify(error)))
+        } else {
             fetchEmergencyData()
         }
     }
@@ -893,8 +938,14 @@ function EmergencyManager() {
             <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xl font-black text-[#1A1A2E]">Emergency Service Manager</h3>
-                    <button onClick={() => setShowServiceEditor(!showServiceEditor)} className="bg-red-600 text-white px-5 py-2.5 rounded-2xl font-bold text-sm shadow-lg shadow-red-600/20 active:scale-95 transition-all">
-                        {showServiceEditor ? 'Close Editor' : 'Manage Services'}
+                    <button onClick={() => {
+                        setShowServiceEditor(!showServiceEditor)
+                        if (showServiceEditor) {
+                            setEditingServiceId(null)
+                            setNewService({ name: '', icon: '🚑', charge: 500, estimated_time: '20 mins', description: '' })
+                        }
+                    }} className="bg-red-600 text-white px-5 py-2.5 rounded-2xl font-bold text-sm shadow-lg shadow-red-600/20 active:scale-95 transition-all">
+                        {showServiceEditor ? 'Close Editor' : '➕ Add New Service'}
                     </button>
                 </div>
 
@@ -903,14 +954,32 @@ function EmergencyManager() {
                         <input placeholder="Service Name" value={newService.name} onChange={e => setNewService({...newService, name: e.target.value})} className="bg-white border-none rounded-xl p-3 text-sm font-bold shadow-sm" />
                         <input placeholder="Charge (₹)" type="number" value={newService.charge} onChange={e => setNewService({...newService, charge: Number(e.target.value)})} className="bg-white border-none rounded-xl p-3 text-sm font-bold shadow-sm" />
                         <input placeholder="Response Time" value={newService.estimated_time} onChange={e => setNewService({...newService, estimated_time: e.target.value})} className="bg-white border-none rounded-xl p-3 text-sm font-bold shadow-sm" />
-                        <button onClick={handleAddService} className="bg-[#1A1A2E] text-white rounded-xl font-bold">Add Service</button>
+                        <button onClick={handleSaveService} className="bg-[#1A1A2E] text-white rounded-xl font-bold">{editingServiceId ? 'Update Service' : 'Add Service'}</button>
                     </div>
                 )}
 
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
                     {services.map(s => (
-                        <div key={s.id} className="min-w-[200px] bg-gray-50 p-4 rounded-3xl border border-transparent hover:border-red-200 transition-all">
-                            <div className="text-2xl mb-2">{s.icon}</div>
+                        <div key={s.id} className="min-w-[220px] bg-gray-50 p-5 rounded-3xl border border-transparent hover:border-red-200 transition-all group relative">
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="text-3xl">{s.icon}</div>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button 
+                                        onClick={() => {
+                                            setEditingServiceId(s.id)
+                                            setNewService({ name: s.name, icon: s.icon, charge: s.charge, estimated_time: s.estimated_time, description: s.description || '' })
+                                            setShowServiceEditor(true)
+                                        }} 
+                                        className="bg-white text-blue-500 p-1.5 rounded-lg shadow-sm hover:bg-blue-50" title="Edit">
+                                        ✏️
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDeleteService(s.id)} 
+                                        className="bg-white text-red-500 p-1.5 rounded-lg shadow-sm hover:bg-red-50" title="Delete">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
                             <p className="font-black text-[#1A1A2E] text-sm">{s.name}</p>
                             <p className="text-red-600 font-bold text-xs mt-1">₹{s.charge} • {s.estimated_time}</p>
                         </div>
@@ -992,7 +1061,7 @@ function BannerManager() {
     const [banners, setBanners] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [isAdding, setIsAdding] = useState(false)
-    const [form, setForm] = useState({ title: '', subtitle: '', emoji: '🎁', bg_color: 'from-orange-500 to-red-500' })
+    const [form, setForm] = useState({ title: '', subtitle: '', emoji: '🎁', bg_color: 'from-orange-500 to-red-500', button_text: 'Book Now' })
 
     useEffect(() => {
         const fetchBanners = async () => {
@@ -1006,17 +1075,23 @@ function BannerManager() {
 
     const fetchBanners = async () => {
         setLoading(true)
-        const { data } = await supabase.from('banners').select('*').order('created_at', { ascending: false })
+        const { data, error } = await supabase.from('banners').select('*').order('created_at', { ascending: false })
+        if (error) {
+            console.error("Failed to load banners. Is the table created?", error)
+        }
         if (data) setBanners(data)
         setLoading(false)
     }
 
     const handleSave = async () => {
+        if (!form.title || !form.subtitle) return alert('Please fill title and subtitle')
         const { error } = await supabase.from('banners').insert(form)
-        if (!error) {
+        if (error) {
+            alert('Failed to save banner. Please ensure the banners table has the button_text column. Error: ' + error.message)
+        } else {
             fetchBanners()
             setIsAdding(false)
-            setForm({ title: '', subtitle: '', emoji: '🎁', bg_color: 'from-orange-500 to-red-500' })
+            setForm({ title: '', subtitle: '', emoji: '🎁', bg_color: 'from-orange-500 to-red-500', button_text: 'Book Now' })
         }
     }
 
@@ -1042,38 +1117,61 @@ function BannerManager() {
             </div>
 
             {isAdding && (
-                <div className="bg-white p-8 rounded-[32px] shadow-2xl border border-gray-100 mb-8 animate-slide-up">
-                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                        <span className="w-2 h-8 bg-[#FF6B35] rounded-full"></span>
-                        Create New Offer Banner
-                    </h3>
-                    <div className="grid grid-cols-2 gap-6 mb-8">
-                        <div>
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Banner Title</label>
-                            <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl p-4 font-bold text-[#1A1A2E]" placeholder="e.g. 20% Off Electrical" />
+                <div className="bg-white p-8 rounded-[32px] shadow-2xl border border-gray-100 mb-8 animate-slide-up grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                            <span className="w-2 h-8 bg-[#FF6B35] rounded-full"></span>
+                            Create New Offer Banner
+                        </h3>
+                        <div className="space-y-4 mb-8">
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Banner Title</label>
+                                <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 font-bold text-[#1A1A2E] outline-none focus:border-[#FF6B35] transition-colors" placeholder="e.g. 20% Off Electrical" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Subtitle / Validity</label>
+                                <input value={form.subtitle} onChange={e => setForm({...form, subtitle: e.target.value})} className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 font-bold text-[#1A1A2E] outline-none focus:border-[#FF6B35] transition-colors" placeholder="e.g. Use code FLASH20" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Button Text</label>
+                                    <input value={form.button_text} onChange={e => setForm({...form, button_text: e.target.value})} className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 font-bold text-[#1A1A2E] outline-none focus:border-[#FF6B35] transition-colors" placeholder="e.g. Book Now" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Emoji</label>
+                                    <input value={form.emoji} onChange={e => setForm({...form, emoji: e.target.value})} className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 font-bold text-[#1A1A2E] outline-none focus:border-[#FF6B35] transition-colors text-center" placeholder="⚡" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Gradient Background</label>
+                                <select value={form.bg_color} onChange={e => setForm({...form, bg_color: e.target.value})} className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 font-bold text-[#1A1A2E] outline-none focus:border-[#FF6B35] transition-colors">
+                                    <option value="from-orange-500 to-red-500">Orange Sunset</option>
+                                    <option value="from-blue-500 to-cyan-500">Deep Blue</option>
+                                    <option value="from-emerald-500 to-teal-500">Nature Green</option>
+                                    <option value="from-purple-500 to-pink-500">Purple Haze</option>
+                                    <option value="from-gray-800 to-black">Sleek Black</option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Subtitle / Validity</label>
-                            <input value={form.subtitle} onChange={e => setForm({...form, subtitle: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl p-4 font-bold text-[#1A1A2E]" placeholder="e.g. Use code FLASH20" />
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Emoji</label>
-                            <input value={form.emoji} onChange={e => setForm({...form, emoji: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl p-4 font-bold text-[#1A1A2E]" placeholder="e.g. ⚡" />
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Gradient Background</label>
-                            <select value={form.bg_color} onChange={e => setForm({...form, bg_color: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl p-4 font-bold text-[#1A1A2E]">
-                                <option value="from-orange-500 to-red-500">Orange Sunset</option>
-                                <option value="from-blue-500 to-cyan-500">Deep Blue</option>
-                                <option value="from-emerald-500 to-teal-500">Nature Green</option>
-                                <option value="from-purple-500 to-pink-500">Purple Haze</option>
-                                <option value="from-gray-800 to-black">Sleek Black</option>
-                            </select>
+                        <div className="flex gap-4">
+                            <button onClick={handleSave} className="bg-[#1A1A2E] text-white px-8 py-3.5 rounded-xl font-bold flex-1 active:scale-95 transition-transform">Save Banner</button>
+                            <button onClick={() => setIsAdding(false)} className="bg-gray-100 text-gray-500 px-8 py-3.5 rounded-xl font-bold hover:bg-gray-200 transition-colors">Cancel</button>
                         </div>
                     </div>
-                    <div className="flex gap-4">
-                        <button onClick={handleSave} className="bg-[#1A1A2E] text-white px-8 py-4 rounded-2xl font-bold flex-1">Save Banner</button>
-                        <button onClick={() => setIsAdding(false)} className="bg-gray-100 text-gray-500 px-8 py-4 rounded-2xl font-bold">Cancel</button>
+                    
+                    {/* Live Preview Section */}
+                    <div className="flex flex-col justify-center bg-gray-50 rounded-3xl p-6 border-2 border-dashed border-gray-200">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block text-center">Live Customer App Preview</label>
+                        <div className={`h-32 bg-gradient-to-r ${form.bg_color} rounded-2xl p-5 flex items-center justify-between shadow-xl`}>
+                            <div>
+                                <p className="text-white font-black text-lg leading-tight">{form.title || 'Your Title Here'}</p>
+                                <p className="text-white/80 text-xs mt-1">{form.subtitle || 'Your subtitle here'}</p>
+                                <button className="mt-3 bg-white text-gray-900 text-[10px] font-bold px-4 py-1.5 rounded-full pointer-events-none">
+                                    {form.button_text || 'Book Now'}
+                                </button>
+                            </div>
+                            <span className="text-6xl animate-bounce-subtle">{form.emoji}</span>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1085,6 +1183,9 @@ function BannerManager() {
                             <div>
                                 <p className="text-white font-black text-lg leading-tight">{banner.title}</p>
                                 <p className="text-white/80 text-xs mt-1">{banner.subtitle}</p>
+                                <button className="mt-3 bg-white text-gray-900 text-[10px] font-bold px-4 py-1.5 rounded-full pointer-events-none">
+                                    {banner.button_text || 'Book Now'}
+                                </button>
                             </div>
                             <span className="text-5xl">{banner.emoji}</span>
                         </div>
