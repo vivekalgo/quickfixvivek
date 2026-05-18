@@ -29,7 +29,7 @@ export default function PushNotificationManager() {
                     id: 'alerts',
                     name: 'Service Alerts',
                     description: 'Notifications for your service status',
-                    sound: 'default',
+                    sound: 'alerts',
                     importance: 5,
                     visibility: 1,
                     vibration: true

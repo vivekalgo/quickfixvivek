@@ -1,6 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import { PushNotifications } from '@capacitor/push-notifications'
+import { LocalNotifications } from '@capacitor/local-notifications'
 import { Capacitor } from '@capacitor/core'
 import { supabase } from '@/lib/data'
 
@@ -21,19 +22,18 @@ export default function PushNotificationManager({ shop }: { shop: any }) {
                     return
                 }
 
-                // 1.5 Create a high-importance channel for Android
+                // 1.5 Create a high-importance channel for Android with custom sound
                 await PushNotifications.createChannel({
                     id: 'orders',
                     name: 'New Order Alerts',
                     description: 'High priority alerts for incoming service requests',
-                    sound: 'default',
+                    sound: 'incoming_order',
                     importance: 5,
                     visibility: 1,
                     vibration: true
                 })
 
                 // 2. Register
-                // Native registration will now work as google-services.json is present.
                 try {
                     await PushNotifications.register()
                     console.log('Provider Push Registration Success.')
@@ -54,6 +54,40 @@ export default function PushNotificationManager({ shop }: { shop: any }) {
 
                 PushNotifications.addListener('registrationError', (error) => {
                     console.error('Provider Push Error:', error)
+                })
+
+                // 4. Handle incoming notifications while app is open
+                PushNotifications.addListener('pushNotificationReceived', async (notification) => {
+                    console.log('Provider Push received:', notification)
+                    
+                    // Trigger loud local notification in foreground!
+                    try {
+                        await LocalNotifications.schedule({
+                            notifications: [
+                                {
+                                    title: notification.title || 'New Service Request',
+                                    body: notification.body || 'You have a new booking request.',
+                                    id: Math.floor(Math.random() * 10000),
+                                    schedule: { at: new Date(Date.now() + 500) },
+                                    sound: 'incoming_order',
+                                    smallIcon: 'ic_stat_name',
+                                    channelId: 'orders',
+                                    extra: notification.data || {}
+                                }
+                            ]
+                        })
+                    } catch (err) {
+                        console.error('Foreground local schedule failed:', err)
+                    }
+                })
+
+                // 5. Handle notification click actions
+                PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+                    console.log('Provider Push action performed:', action)
+                    const data = action.notification.data
+                    if (data?.bookingId) {
+                        window.location.href = `/orders/track?id=${data.bookingId}`
+                    }
                 })
 
             } catch (err) {

@@ -24,7 +24,7 @@ export default function NotificationListener() {
                             body: notif.message,
                             id: Math.floor(Math.random() * 10000),
                             schedule: { at: new Date(Date.now() + 500) },
-                            sound: 'default',
+                            sound: 'alerts',
                             smallIcon: 'ic_stat_name', // Standard Capacitor icon name
                             channelId: 'alerts'
                         }
@@ -45,7 +45,7 @@ export default function NotificationListener() {
                     name: 'Service Alerts',
                     importance: 5,
                     description: 'Alerts for booking status and messages',
-                    sound: 'default',
+                    sound: 'alerts',
                     vibration: true,
                     visibility: 1
                 })

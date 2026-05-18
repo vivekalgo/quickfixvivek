@@ -2,7 +2,6 @@
 import { useEffect } from 'react'
 import { supabase } from '@/lib/data'
 import { LocalNotifications } from '@capacitor/local-notifications'
-
 import { Capacitor } from '@capacitor/core'
 
 export default function NotificationListener({ shop }: { shop: any }) {
@@ -21,9 +20,9 @@ export default function NotificationListener({ shop }: { shop: any }) {
                             body: notif.message,
                             id: Math.floor(Math.random() * 10000),
                             schedule: { at: new Date(Date.now() + 500) },
-                            sound: 'default',
+                            sound: 'incoming_order',
                             smallIcon: 'ic_stat_name',
-                            channelId: 'quickfix-provider-alerts'
+                            channelId: 'orders'
                         }
                     ]
                 })
@@ -38,11 +37,11 @@ export default function NotificationListener({ shop }: { shop: any }) {
             try {
                 await LocalNotifications.requestPermissions()
                 await LocalNotifications.createChannel({
-                    id: 'quickfix-provider-alerts',
-                    name: 'Urgent Order Alerts',
+                    id: 'orders',
+                    name: 'New Order Alerts',
                     importance: 5,
                     description: 'Alerts for incoming bookings',
-                    sound: 'default',
+                    sound: 'incoming_order',
                     vibration: true,
                     visibility: 1
                 })
