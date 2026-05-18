@@ -205,7 +205,7 @@ export async function ensureLocationPermissionWithUX(): Promise<boolean> {
     if (status === 'granted') return true
     
     if (status === 'denied') {
-        if (confirm('Location permission block/denied hai. QuickFix ko location allow karne ke liye phone Settings open karein?')) {
+        if (confirm('Location permission is denied. Open your phone Settings to allow location access for QuickFix?')) {
             await openAppSettings()
         }
         return false
@@ -213,7 +213,7 @@ export async function ensureLocationPermissionWithUX(): Promise<boolean> {
 
     const after = await requestLocationPermission()
     if (after === 'denied') {
-        if (confirm('Location permission deny kar di gayi hai. Kya aap app permission settings open karna chahte hain?')) {
+        if (confirm('Location permission was denied. Would you like to open your phone Settings to enable it?')) {
             await openAppSettings()
         }
     }

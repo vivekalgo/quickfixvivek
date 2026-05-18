@@ -9,11 +9,11 @@ const MapPopup = dynamic(() => import('./MapPopup'), {
     loading: () => <div className="h-[250px] w-full bg-gray-100 rounded-2xl animate-pulse flex items-center justify-center font-bold text-gray-400">Loading Map...</div> 
 })
 
-export default function LocationPicker({ isOpen, onClose, onSelect, initialLocation }: any) {
+export default function LocationPicker({ isOpen, onClose, onSelect, initialLocation, initialPosition }: any) {
     const [query, setQuery] = useState('')
     const [suggestions, setSuggestions] = useState<any[]>([])
-    // Default Bangalore
-    const [position, setPosition] = useState<[number, number]>([12.9716, 77.5946])
+    // Default Bangalore fallback
+    const [position, setPosition] = useState<[number, number]>(initialPosition || [12.9716, 77.5946])
     const [addressText, setAddressText] = useState(initialLocation || '')
     const [loading, setLoading] = useState(false)
     const [hasInteracted, setHasInteracted] = useState(false)
@@ -25,6 +25,9 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
         if (isOpen) {
             setMapRenderKey(prev => prev + 1)
             setShowMap(true)
+            if (initialPosition) {
+                setPosition(initialPosition)
+            }
             // If we have an initial location, we count that as an interaction so it shows up
             if (initialLocation && initialLocation !== 'Detecting…') {
                 setHasInteracted(true)
@@ -32,7 +35,7 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
         } else {
             setShowMap(false)
         }
-    }, [isOpen, initialLocation])
+    }, [isOpen, initialLocation, initialPosition])
 
     useEffect(() => {
         return () => {
@@ -90,7 +93,7 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
         try {
             const granted = await ensureLocationPermissionWithUX()
             if (!granted) {
-                alert('Location permission required hai. Nearby shops ke liye permission allow karein.')
+                alert('Location permission is required to find nearby shops. Please allow permission in your settings.')
                 return
             }
 
@@ -101,7 +104,7 @@ export default function LocationPicker({ isOpen, onClose, onSelect, initialLocat
                 return
             }
 
-            alert('Current location fetch nahi ho payi. Thodi der baad dobara try karein.')
+            alert('Could not fetch your current location. Please verify your GPS signal and try again.')
         } catch (error) {
             alert('Failed to get location. Please enable location permissions.')
         } finally {

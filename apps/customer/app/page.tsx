@@ -175,7 +175,6 @@ export default function HomePage() {
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
     return (
-        <AuthGuard>
         <div className="pb-24">
             {/* ── Header ── */}
             <div className="px-5 pt-12 pb-4" style={{ background: 'linear-gradient(160deg, #1A1A2E 0%, #0F3460 100%)' }}>
@@ -360,9 +359,9 @@ export default function HomePage() {
                 isOpen={isLocationOpen}
                 onClose={() => setIsLocationOpen(false)}
                 initialLocation={location}
+                initialPosition={position}
                 onSelect={handleLocationSelect}
             />
         </div>
-        </AuthGuard>
     )
 }

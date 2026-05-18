@@ -64,9 +64,19 @@ function LoginPageInner() {
             setStep('otp')
         } catch (err: any) {
             console.error('Phone Auth Error:', err)
-            setError(err.message || 'Failed to send OTP')
+            let msg = err.message || 'Failed to send OTP'
+            if (msg.includes('auth/unauthorized-domain') || msg.includes('unauthorized') || msg.includes('domain')) {
+                msg = 'Domain not authorized! Please add "localhost" to your Firebase Console > Authentication > Settings > Authorized Domains list.'
+            } else if (msg.includes('auth/invalid-app-credential') || msg.includes('app-credential')) {
+                msg = 'Invalid App Credentials! Please verify your Firebase configuration and make sure "Device Integrity" is enabled in Google Console if testing on native devices.'
+            } else if (msg.includes('captcha') || msg.includes('recaptcha')) {
+                msg = 'reCAPTCHA verification failed. Please make sure you are connected to the internet and reCAPTCHA is active.'
+            }
+            setError(msg)
             if (window.recaptchaVerifier) {
-                window.recaptchaVerifier.clear()
+                try {
+                    window.recaptchaVerifier.clear()
+                } catch (e) {}
                 window.recaptchaVerifier = null
             }
         } finally {

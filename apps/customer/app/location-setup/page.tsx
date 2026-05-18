@@ -63,7 +63,7 @@ function LocationSetupInner() {
         if (isNativePlatform()) {
             const perm = await checkLocationPermission()
             if (perm === 'denied') {
-                if (confirm('Location permission denied hai. QuickFix ko location allow karne ke liye phone Settings open karein?')) {
+                if (confirm('Location permission is denied. Open your phone Settings to allow location access for QuickFix?')) {
                     await openAppSettings()
                 }
                 setPhase('denied')
@@ -72,7 +72,7 @@ function LocationSetupInner() {
             if (perm === 'prompt') {
                 const after = await requestLocationPermission()
                 if (after !== 'granted') {
-                    if (confirm('Permission allow nahi ki gayi. Kya aap app permission settings open karna chahte hain?')) {
+                    if (confirm('Location permission was denied. Would you like to open your phone Settings to enable it?')) {
                         await openAppSettings()
                     }
                     setPhase('denied')
