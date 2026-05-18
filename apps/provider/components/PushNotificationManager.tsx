@@ -10,11 +10,14 @@ export default function PushNotificationManager({ shop }: { shop: any }) {
 
         const registerPush = async () => {
             try {
-                // 1. Check permission only
-                const permStatus = await PushNotifications.checkPermissions()
+                // 1. Check & request permission
+                let permStatus = await PushNotifications.checkPermissions()
+                if (permStatus.receive === 'prompt') {
+                    permStatus = await PushNotifications.requestPermissions()
+                }
                 
                 if (permStatus.receive !== 'granted') {
-                    // Let dashboard or other logic handle permission requests
+                    console.warn('Push permission not granted:', permStatus.receive)
                     return
                 }
 

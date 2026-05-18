@@ -13,11 +13,14 @@ export default function PushNotificationManager() {
 
         const registerPush = async () => {
             try {
-                // 1. Check permission only
-                const permStatus = await PushNotifications.checkPermissions()
+                // 1. Check & request permission
+                let permStatus = await PushNotifications.checkPermissions()
+                if (permStatus.receive === 'prompt') {
+                    permStatus = await PushNotifications.requestPermissions()
+                }
                 
                 if (permStatus.receive !== 'granted') {
-                    // Don't request here, let PermissionGuard handle it
+                    console.warn('Push permission not granted:', permStatus.receive)
                     return
                 }
 

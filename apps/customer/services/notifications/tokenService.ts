@@ -29,6 +29,14 @@ export const NotificationTokenService = {
           }, { onConflict: 'id' });
 
         if (error) console.error('Failed to sync FCM token with Supabase:', error);
+
+        // Also update fcm_token in the users table!
+        const { error: userErr } = await supabase
+          .from('users')
+          .update({ fcm_token: token.value })
+          .eq('id', userId);
+
+        if (userErr) console.error('Failed to update FCM token in users table:', userErr);
       });
 
       PushNotifications.addListener('registrationError', (error) => {
