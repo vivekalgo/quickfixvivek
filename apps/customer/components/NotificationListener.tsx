@@ -26,7 +26,7 @@ export default function NotificationListener() {
                             schedule: { at: new Date(Date.now() + 500) },
                             sound: 'default',
                             smallIcon: 'ic_stat_name', // Standard Capacitor icon name
-                            channelId: 'quickfix-alerts'
+                            channelId: 'alerts'
                         }
                     ]
                 })
@@ -34,18 +34,19 @@ export default function NotificationListener() {
                 console.error('Failed to show local notification', e)
             }
         }
-
+ 
         // 1. Request permission for local notifications & Setup Channel
         const setupNotifications = async () => {
             if (!Capacitor.isNativePlatform()) return
             try {
                 await LocalNotifications.requestPermissions()
                 await LocalNotifications.createChannel({
-                    id: 'quickfix-alerts',
-                    name: 'Service Updates',
+                    id: 'alerts',
+                    name: 'Service Alerts',
                     importance: 5,
                     description: 'Alerts for booking status and messages',
                     sound: 'default',
+                    vibration: true,
                     visibility: 1
                 })
             } catch (e) {

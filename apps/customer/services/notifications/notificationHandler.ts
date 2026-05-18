@@ -19,7 +19,8 @@ export const NotificationHandlerService = {
             body: notification.body || '',
             id: Math.floor(Math.random() * 10000),
             extra: notification.data,
-            channelId: 'quickfix-alerts',
+            channelId: 'alerts',
+            sound: 'default',
             smallIcon: 'ic_stat_name',
           }
         ]
